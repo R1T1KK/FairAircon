@@ -1,0 +1,204 @@
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --crystal-white: #ffffff;
+  --sky-blue: #0ea5e9;
+  --soft-blue: #e0f2fe;
+  --premium-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+}
+
+.profile-page {
+  min-height: 100vh;
+  padding: 120px 0 100px;
+  background: radial-gradient(circle at top right, #f0f9ff 0%, #ffffff 50%, #e0f2fe 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Moving Mesh Background */
+.mesh-gradient {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+}
+
+.blob-1 { background: #bae6fd; top: -100px; right: -100px; }
+.blob-2 { background: #e0f2fe; bottom: -200px; left: -100px; animation-delay: -5s; }
+.blob-3 { background: #f0f9ff; top: 40%; left: 30%; animation-delay: -10s; }
+
+@keyframes swirl {
+  from { transform: rotate(0deg) translate(0, 0); }
+  to { transform: rotate(20deg) translate(20px, 20px); }
+}
+
+.profile-container {
+  position: relative;
+  z-index: 1;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+/* Glassmorphism Classes */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--premium-shadow);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.12);
+}
+
+/* Profile Pillar */
+.profile-pillar {
+  padding: 40px;
+  text-align: center;
+  position: sticky;
+  top: 120px;
+}
+
+.profile-avatar-wrapper {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 24px;
+  position: relative;
+}
+
+.avatar-main {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky-blue), #38bdf8);
+  color: white;
+  font-size: 3rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 20px -5px rgba(14, 165, 233, 0.4);
+}
+
+.avatar-ring {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border: 2px solid var(--sky-blue);
+  border-radius: 50%;
+  opacity: 0.2;
+  animation: pulse 3s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.05); opacity: 0.1; }
+  100% { transform: scale(1); opacity: 0.2; }
+}
+
+.profile-pillar h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.profile-subtitle {
+  color: var(--sky-blue);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 24px;
+}
+
+/* Booking Cards */
+.booking-item-glass {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.bi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.bi-title h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.bi-id {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.bi-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.meta-item svg {
+  color: var(--sky-blue);
+}
+
+/* AC Split Component placeholder style */
+.ac-split-container {
+  margin: 80px 0;
+  height: 400px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.ac-layer {
+  position: absolute;
+  pointer-events: none;
+}
+
+@media (max-width: 1024px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}

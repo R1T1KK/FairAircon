@@ -191,6 +191,7 @@ exports.updateAvatar = async (req, res, next) => {
       user
     });
   } catch (error) {
+    console.error('SERVER AVATAR UPLOAD ERROR:', error);
     next(error);
   }
 };

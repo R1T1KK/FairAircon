@@ -175,7 +175,7 @@ const ReviewSection = () => {
                   <div className="review-avatar">
                     <FaUserCircle size={40} color="#94a3b8" />
                   </div>
-                  <div>
+                  <div className="review-author-info">
                     <strong>{review.user?.name || 'Customer'}</strong>
                     <span>Verified User</span>
                   </div>

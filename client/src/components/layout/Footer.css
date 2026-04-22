@@ -41,7 +41,7 @@
 }
 
 .footer-desc {
-  color: var(--gray-400);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   line-height: 1.7;
   margin-bottom: 20px;
@@ -60,7 +60,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--gray-400);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 1.1rem;
   transition: all var(--transition-fast);
 }
@@ -80,7 +80,7 @@
 
 .footer-col a {
   display: block;
-  color: var(--gray-400);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 0.9rem;
   padding: 6px 0;
   transition: color var(--transition-fast);
@@ -94,7 +94,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--gray-400);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   padding: 6px 0;
 }
@@ -109,7 +109,7 @@
   padding: 20px 0;
   border-top: 1px solid var(--gray-800);
   text-align: center;
-  color: var(--gray-500);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.85rem;
 }
 

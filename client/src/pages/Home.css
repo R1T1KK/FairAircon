@@ -329,9 +329,10 @@
 }
 
 .step-connector {
-  font-size: 1.5rem;
-  color: var(--primary-300);
-  opacity: 0.6;
+  font-size: 2rem;
+  color: #fff;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
 }
 
 /* ======================= CTA ======================= */

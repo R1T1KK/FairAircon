@@ -21,20 +21,32 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ]
   .filter(Boolean)
-  .map(origin => origin.replace(/\/$/, '')); // Strip trailing slashes safely
+  .map(origin => origin.toLowerCase().replace(/\/$/, ''));
 
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (like mobile apps or curl requests)
+    // 1. Allow internal/automated requests
     if (!origin) return callback(null, true);
     
-    const sanitizedOrigin = origin.replace(/\/$/, '');
-    if (allowedOrigins.indexOf(sanitizedOrigin) === -1) {
-      console.warn(`⚠️ CORS blocked for origin: ${origin}`);
-      const msg = `The CORS policy for this site does not allow access from ${origin}. Please check your FRONTEND_URL environment variable.`;
-      return callback(new Error(msg), false);
+    const sanitizedOrigin = origin.toLowerCase().replace(/\/$/, '');
+    
+    // 2. Check if it's in the allowed list
+    if (allowedOrigins.includes(sanitizedOrigin)) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    
+    // 3. Robust fallback: specifically allow your Vercel domain even if FRONTEND_URL is slightly off
+    if (sanitizedOrigin.includes('fair-aircon.vercel.app')) {
+      return callback(null, true);
+    }
+
+    // 4. If blocked, log exactly why so we can fix it
+    console.error(`❌ CORS blocked!`);
+    console.error(`Received Origin: ${origin}`);
+    console.error(`Allowed List: [${allowedOrigins.join(', ')}]`);
+    
+    const msg = `CORS blocked. Origin "${origin}" is not in the allowed list.`;
+    return callback(new Error(msg), false);
   },
   credentials: true
 }));

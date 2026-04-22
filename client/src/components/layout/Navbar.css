@@ -188,12 +188,25 @@
     top: 0;
     right: 0;
     height: 100vh;
-    width: 300px;
+    width: 280px;
     background: white;
     flex-direction: column;
-    padding: 100px 40px;
+    padding: 100px 32px;
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
   }
+}
+
+@media (max-width: 480px) {
+  .navbar { padding: 10px 16px; }
+  .navbar-brand { font-size: 1.3rem; gap: 8px; }
+  .brand-icon { font-size: 1.4rem; }
+  
+  .navbar-links.open { width: 100%; padding-top: 80px; }
+  .navbar-links a { font-size: 1.1rem; padding: 12px 0; }
+  
+  .navbar-auth-section, .navbar-user-section { padding: 4px 10px; gap: 10px; margin-left: 0; }
+  .nav-signup-btn, .nav-logout-btn { padding: 0 16px; min-width: 100px; height: 38px; font-size: 0.8rem; }
 }
 
 /* User Section & Logout */

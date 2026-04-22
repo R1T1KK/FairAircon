@@ -266,9 +266,27 @@
 }
 
 @media (max-width: 768px) {
-  .booking-progress { flex-wrap: wrap; justify-content: center; }
+  .booking-progress { flex-wrap: wrap; justify-content: center; gap: 8px; }
   .service-selection-grid { grid-template-columns: 1fr; }
-  .timeslot-grid { grid-template-columns: repeat(2, 1fr); }
-  .booking-content { padding: 32px 24px; }
+  .timeslot-grid { grid-template-columns: repeat(3, 1fr); }
+  .booking-content { padding: 32px 20px; }
   .booking-header h1 { font-size: 2.2rem; }
+}
+
+@media (max-width: 480px) {
+  .booking-page { padding-top: 100px; }
+  .booking-header { margin-bottom: 30px; }
+  .booking-header h1 { font-size: 1.8rem; }
+  .booking-header p { font-size: 1rem; }
+  
+  .progress-step { padding: 6px 12px; font-size: 0.75rem; }
+  .booking-content { padding: 24px 16px; border-radius: 20px; }
+  .booking-step h2 { font-size: 1.4rem; margin-bottom: 24px; }
+  
+  .timeslot-grid { grid-template-columns: repeat(2, 1fr); }
+  .timeslot-btn { padding: 12px; font-size: 0.8rem; }
+  
+  .confirm-total strong { font-size: 1.5rem; }
+  .booking-nav { flex-direction: column; gap: 12px; }
+  .booking-nav button { width: 100%; }
 }

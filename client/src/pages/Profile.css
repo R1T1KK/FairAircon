@@ -240,3 +240,15 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 576px) {
+  .profile-page { padding-top: 100px; }
+  .profile-pillar { padding: 32px 20px; position: relative; top: 0; }
+  .profile-pillar h2 { font-size: 1.5rem; }
+  .profile-avatar-wrapper { width: 100px; height: 100px; }
+  .avatar-main { font-size: 2.5rem; }
+  
+  .booking-item-glass { padding: 18px; }
+  .bi-title h3 { font-size: 1.1rem; }
+  .bi-meta { grid-template-columns: 1fr; gap: 8px; }
+}

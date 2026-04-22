@@ -177,3 +177,17 @@
   .review-stats { width: 100%; align-items: flex-start; }
   .review-form-container { padding: 32px 20px; }
 }
+
+@media (max-width: 480px) {
+  .review-section { padding: 60px 0; }
+  .avg-rating { font-size: 2rem; }
+  .total-reviews { font-size: 0.85rem; }
+  
+  .review-card { padding: 20px; border-radius: 20px; }
+  .review-text { font-size: 0.95rem; }
+  
+  .review-author { gap: 12px; }
+  .review-avatar { width: 36px; height: 36px; font-size: 1rem; }
+  .review-author-info strong { font-size: 0.9rem; }
+  .review-author-info span { font-size: 0.75rem; }
+}

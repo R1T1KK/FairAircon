@@ -217,6 +217,14 @@
   font-size: 0.95rem;
 }
 
+.nav-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--primary-200);
+}
+
 .nav-logout-btn {
   display: flex;
   align-items: center;

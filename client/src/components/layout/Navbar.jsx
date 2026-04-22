@@ -48,7 +48,12 @@ const Navbar = () => {
                 </Link>
               )}
               <Link to="/profile" className="nav-profile-link">
-                <FiUser size={16} /> {user.name?.split(' ')[0]}
+                {user.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="nav-avatar-img" />
+                ) : (
+                  <FiUser size={16} />
+                )}
+                {user.name?.split(' ')[0]}
               </Link>
               <button onClick={handleLogout} className="nav-logout-btn">
                 <FiLogOut size={16} /> Logout

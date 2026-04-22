@@ -171,6 +171,30 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
+// @desc    Update user avatar
+// @route   PUT /api/auth/avatar
+exports.updateAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload an image' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar: req.file.path },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Avatar updated successfully',
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Forgot Password
 // @route   POST /api/auth/forgot-password
 exports.forgotPassword = async (req, res, next) => {

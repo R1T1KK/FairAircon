@@ -68,6 +68,14 @@ export const AuthProvider = ({ children }) => {
     return res.data.user;
   };
 
+  const updateAvatar = async (formData) => {
+    const res = await api.put('/auth/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    setUser(res.data.user);
+    return res.data.user;
+  };
+
   const forgotPassword = async (email) => {
     const res = await api.post('/auth/forgot-password', { email });
     return res.data;
@@ -79,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, verifyOtp, logout, updateProfile, forgotPassword, resetPassword, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, verifyOtp, logout, updateProfile, updateAvatar, forgotPassword, resetPassword, isAdmin: user?.role === 'admin' }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,15 +3,17 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2, FiX, FiCheckCircle, FiChevronRight } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2, FiX, FiCheckCircle, FiChevronRight, FiCamera } from 'react-icons/fi';
+import { FaStar, FaRegStar } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 import './Profile.css';
 
 const Profile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, updateAvatar } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [reviewingId, setReviewingId] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
@@ -39,6 +41,29 @@ const Profile = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file size (limit 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      return toast.error('File size too large (Max 2MB)');
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      setUploading(true);
+      await updateAvatar(formData);
+      toast.success('Avatar updated!');
+    } catch (err) {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -82,9 +107,23 @@ const Profile = () => {
             animate={{ opacity: 1, x: 0 }}
             className="glass-card profile-pillar"
           >
-            <div className="profile-avatar-wrapper">
+            <div className="profile-avatar-wrapper group">
               <div className="avatar-main">
-                {user?.name?.[0]?.toUpperCase()}
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name} className="avatar-img" />
+                ) : (
+                  user?.name?.[0]?.toUpperCase()
+                )}
+                
+                {/* Upload Overlay */}
+                <label className="avatar-upload-overlay">
+                  <input type="file" hidden accept="image/*" onChange={handleAvatarChange} disabled={uploading} />
+                  {uploading ? (
+                    <div className="spinner-sm"></div>
+                  ) : (
+                    <FiCamera size={24} />
+                  )}
+                </label>
               </div>
               <div className="avatar-ring"></div>
             </div>
@@ -207,12 +246,60 @@ const Profile = () => {
                              Track Progress <FiChevronRight />
                           </Link>
                         )}
+                        {b.status === 'completed' && !b.isReviewed && (
+                          <button 
+                            onClick={() => setReviewingId(reviewingId === b._id ? null : b._id)} 
+                            className="flex-1 bg-white/50 border border-slate-200 py-2 rounded-xl text-center text-sm font-semibold hover:bg-white transition-all flex items-center justify-center gap-2"
+                          >
+                             {reviewingId === b._id ? 'Cancel' : 'Rate Service'} <FaStar className="text-amber-400" />
+                          </button>
+                        )}
                         {b.paymentStatus === 'pending' && b.status !== 'cancelled' && (
                           <button onClick={() => toast.success("Redirecting to checkout...")} className="flex-1 bg-sky-500 text-white py-2 rounded-xl text-sm font-bold shadow-lg shadow-sky-200">
                              Finalize Payment
                           </button>
                         )}
                       </div>
+
+                      <AnimatePresence>
+                        {reviewingId === b._id && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-4 pt-4 border-t border-slate-100 overflow-hidden"
+                          >
+                            <div className="flex gap-2 mb-3">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <button 
+                                  key={star}
+                                  onClick={() => setReviewData({ ...reviewData, rating: star })}
+                                  className="text-2xl transition-transform active:scale-95"
+                                >
+                                  {star <= reviewData.rating ? (
+                                    <FaStar className="text-amber-400" />
+                                  ) : (
+                                    <FaRegStar className="text-slate-300" />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                            <textarea
+                              className="w-100 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sky-100 transition-all outline-none"
+                              placeholder="Describe your service experience..."
+                              value={reviewData.comment}
+                              onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                              rows={3}
+                            />
+                            <button 
+                              onClick={() => handleReviewSubmit(b._id)}
+                              className="mt-2 w-100 bg-slate-900 text-white py-2 rounded-xl text-sm font-bold hover:bg-black transition-all"
+                            >
+                              Submit Review
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
                   ))}
                 </div>

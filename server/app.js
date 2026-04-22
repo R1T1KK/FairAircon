@@ -19,14 +19,19 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   process.env.FRONTEND_URL
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .map(origin => origin.replace(/\/$/, '')); // Strip trailing slashes safely
 
 app.use(cors({
   origin: (origin, callback) => {
     // allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    
+    const sanitizedOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.indexOf(sanitizedOrigin) === -1) {
+      console.warn(`⚠️ CORS blocked for origin: ${origin}`);
+      const msg = `The CORS policy for this site does not allow access from ${origin}. Please check your FRONTEND_URL environment variable.`;
       return callback(new Error(msg), false);
     }
     return callback(null, true);

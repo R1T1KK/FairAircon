@@ -8,9 +8,9 @@
   background: linear-gradient(to bottom,
       rgba(144, 84, 255, 0.35) 0%,
       /* matches mid-purple of body gradient */
-      rgba(255, 255, 255, 0.18) 40%,
+      rgba(255, 148, 148, 0.472) 40%,
       /* brightens through the section */
-      rgba(160, 210, 235, 0.18) 100%
+      rgba(0, 225, 255, 0.321) 100%
       /* fades back to ice-blue tone */
     );
   backdrop-filter: blur(2px);

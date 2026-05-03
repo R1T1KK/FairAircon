@@ -4,12 +4,13 @@
   position: relative;
   overflow: hidden;
 
-  /* Blends with the global background */
+  /* Blends with the global background using the user's vibrant theme */
   background: linear-gradient(to bottom,
-      rgba(144, 84, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.05) 40%,
-      rgba(0, 225, 255, 0.05) 100%
+      rgba(144, 84, 255, 0.2) 0%,
+      rgba(255, 148, 148, 0.25) 40%,
+      rgba(0, 225, 255, 0.2) 100%
     );
+
 
   backdrop-filter: blur(2px);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
@@ -41,7 +42,7 @@
   right: -100px;
   width: 450px;
   height: 450px;
-  background: radial-gradient(circle, rgba(132, 88, 179, 0.18), transparent 70%);
+  background: radial-gradient(circle, rgba(0, 255, 251, 0.889), transparent 70%);
   pointer-events: none;
   z-index: 0;
   animation: floatOrb 18s ease-in-out infinite reverse;

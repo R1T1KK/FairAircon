@@ -3,6 +3,7 @@ const Service = require('../models/Service');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const { getIO } = require('../config/socket');
+const sendWhatsApp = require('../utils/sendWhatsApp');
 
 // @desc    Get dashboard analytics
 // @route   GET /api/admin/dashboard
@@ -170,8 +171,16 @@ exports.updateBooking = async (req, res, next) => {
         technician: booking.technician,
         updatedAt: booking.updatedAt
       });
+
+      // Notify Technician via WhatsApp if assigned
+      if (update.technician && booking.technician) {
+        await sendWhatsApp({
+          phone: booking.technician.phone,
+          message: `🛠️ *New Job Assigned!*\n\nHello ${booking.technician.name},\n\nYou have been assigned a new job:\nService: ${booking.service.name}\nCustomer: ${booking.user.name}\nAddress: ${booking.address.street}, ${booking.address.city}\nDate: ${new Date(booking.scheduledDate).toLocaleDateString()}\n\nPlease check your Field Tech Portal for details.`
+        });
+      }
     } catch (socketErr) {
-      console.error('Socket notification failed:', socketErr.message);
+      console.error('Notification failed:', socketErr.message);
     }
 
     res.json({ success: true, booking });

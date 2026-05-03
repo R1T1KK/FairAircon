@@ -5,11 +5,14 @@ import { FaStar, FaQuoteLeft, FaUserCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import './ReviewSection.css';
 
+const INITIAL_VISIBLE = 6;
+
 const ReviewSection = () => {
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [services, setServices] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [formData, setFormData] = useState({
     serviceId: '',
     rating: 5,
@@ -58,7 +61,7 @@ const ReviewSection = () => {
         toast.success('Review submitted successfully!');
         setFormData({ serviceId: '', rating: 5, comment: '' });
         setShowForm(false);
-        fetchData(); // Refresh reviews list
+        fetchData();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit review');
@@ -70,6 +73,9 @@ const ReviewSection = () => {
     const total = reviews.reduce((acc, rev) => acc + rev.rating, 0);
     return (total / reviews.length).toFixed(1);
   };
+
+  const visibleReviews = reviews.slice(0, visibleCount);
+  const hasMore = visibleCount < reviews.length;
 
   return (
     <section className="review-section">
@@ -156,36 +162,61 @@ const ReviewSection = () => {
         {loading ? (
           <div className="reviews-loading">Loading reviews...</div>
         ) : (
-          <div className="reviews-grid stagger-children mt-4">
-            {reviews.map((review) => (
-              <div key={review._id} className="review-card animate-fade-in-up">
-                <FaQuoteLeft className="review-quote-icon" />
-                <p className="review-text">{review.comment}</p>
-                <div className="review-stars-static">
-                  {[...Array(5)].map((_, i) => (
-                    <FaStar key={i} className={i < review.rating ? 'star-active' : 'star-inactive'} />
-                  ))}
-                </div>
-                {review.service && (
-                  <div className="review-service-tag">
-                    {review.service.name}
+          <>
+            <div className="reviews-grid stagger-children mt-4">
+              {visibleReviews.map((review) => (
+                <div key={review._id} className="review-card animate-fade-in-up">
+                  <FaQuoteLeft className="review-quote-icon" />
+                  <p className="review-text">{review.comment}</p>
+                  <div className="review-stars-static">
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar key={i} className={i < review.rating ? 'star-active' : 'star-inactive'} />
+                    ))}
                   </div>
+                  {review.service && (
+                    <div className="review-service-tag">
+                      {review.service.name}
+                    </div>
+                  )}
+                  <div className="review-author">
+                    <div className="review-avatar">
+                      <FaUserCircle size={40} color="#94a3b8" />
+                    </div>
+                    <div className="review-author-info">
+                      <strong>{review.user?.name || 'Customer'}</strong>
+                      <span>Verified User</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {reviews.length === 0 && !loading && (
+                <p style={{ textAlign: 'center', width: '100%', color: '#64748b' }}>No reviews yet. Be the first to review!</p>
+              )}
+            </div>
+
+            {reviews.length > INITIAL_VISIBLE && (
+              <div className="see-more-container">
+                {hasMore ? (
+                  <button
+                    id="reviews-see-more-btn"
+                    className="see-more-btn"
+                    onClick={() => setVisibleCount(prev => prev + 6)}
+                  >
+                    See More Reviews
+                    <span className="see-more-count">+{reviews.length - visibleCount} more</span>
+                  </button>
+                ) : (
+                  <button
+                    id="reviews-see-less-btn"
+                    className="see-more-btn see-less-btn"
+                    onClick={() => setVisibleCount(INITIAL_VISIBLE)}
+                  >
+                    See Less
+                  </button>
                 )}
-                <div className="review-author">
-                  <div className="review-avatar">
-                    <FaUserCircle size={40} color="#94a3b8" />
-                  </div>
-                  <div className="review-author-info">
-                    <strong>{review.user?.name || 'Customer'}</strong>
-                    <span>Verified User</span>
-                  </div>
-                </div>
               </div>
-            ))}
-            {reviews.length === 0 && !loading && (
-              <p style={{ textAlign: 'center', width: '100%', color: '#64748b' }}>No reviews yet. Be the first to review!</p>
             )}
-          </div>
+          </>
         )}
       </div>
     </section>

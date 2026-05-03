@@ -63,8 +63,7 @@ exports.getAllReviews = async (req, res, next) => {
     const reviews = await Review.find()
       .populate('user', 'name')
       .populate('service', 'name')
-      .sort('-createdAt')
-      .limit(20);
+      .sort('-createdAt');
     res.json({ success: true, reviews });
   } catch (error) {
     next(error);

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2, FiX, FiCheckCircle, FiChevronRight, FiCamera } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2, FiX, FiCheckCircle, FiChevronRight, FiCamera, FiDownload } from 'react-icons/fi';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -86,6 +86,26 @@ const Profile = () => {
       setReviewData({ rating: 5, comment: '' });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit review');
+    }
+  };
+
+  const downloadReceipt = async (bookingId) => {
+    try {
+      toast.loading('Generating receipt...');
+      const response = await api.get(`/bookings/${bookingId}/receipt`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `FairAircon-Receipt-${bookingId.slice(-8).toUpperCase()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success('Receipt downloaded!');
+    } catch (err) {
+      toast.dismiss();
+      toast.error('Could not download receipt');
     }
   };
 
@@ -252,6 +272,15 @@ const Profile = () => {
                             className="flex-1 bg-white/50 border border-slate-200 py-2 rounded-xl text-center text-sm font-semibold hover:bg-white transition-all flex items-center justify-center gap-2"
                           >
                              {reviewingId === b._id ? 'Cancel' : 'Rate Service'} <FaStar className="text-amber-400" />
+                          </button>
+                        )}
+                        {b.status === 'completed' && (
+                          <button
+                            id={`download-receipt-${b._id}`}
+                            onClick={() => downloadReceipt(b._id)}
+                            style={{ flex: '1', background: 'linear-gradient(135deg, #1e86e9, #0ea5e9)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(30,134,233,0.25)' }}
+                          >
+                            <FiDownload size={14} /> Receipt
                           </button>
                         )}
                         {b.paymentStatus === 'pending' && b.status !== 'cancelled' && (

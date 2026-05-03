@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const { getIO } = require('../config/socket');
+const sendWhatsApp = require('../utils/sendWhatsApp');
 
 // @desc    Get technician's assigned jobs
 // @route   GET /api/technician/jobs
@@ -45,8 +46,17 @@ exports.updateJobStatus = async (req, res, next) => {
         technician: job.technician,
         updatedAt: job.updatedAt
       });
+
+      // Send WhatsApp to customer when technician is on the way
+      if (status === 'on-the-way') {
+        const populatedJob = await Booking.findById(job._id).populate('user', 'name phone');
+        await sendWhatsApp({
+          phone: populatedJob.user.phone,
+          message: `Hello ${populatedJob.user.name.split(' ')[0]}! ❄️\n\nGood news! Our technician *${job.technician.name}* is on the way to your location for the AC service.\n\nYou can track the technician live on our website. See you soon! 🚚`
+        });
+      }
     } catch (socketErr) {
-      console.error('Socket notification failed:', socketErr.message);
+      console.error('Notification failed:', socketErr.message);
     }
 
     res.json({ success: true, job });

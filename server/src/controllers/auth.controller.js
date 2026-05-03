@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const sendEmail = require('../utils/sendEmail');
+const sendWhatsApp = require('../utils/sendWhatsApp');
 const crypto = require('crypto');
 
 // @desc    Register a new user
@@ -46,16 +47,25 @@ exports.register = async (req, res, next) => {
         subject: 'Fair Aircon - Verify Your Account',
         html: message
       });
+
+      // Send OTP via WhatsApp
+      await sendWhatsApp({
+        phone: user.phone,
+        message: `Welcome to *Fair Aircon*! ❄️\n\nYour verification code is: *${otp}*\n\nPlease enter this code on the website to verify your account. It is valid for 10 minutes.`
+      });
+
       res.status(201).json({
         success: true,
-        message: 'OTP sent to email',
+        message: 'OTP sent to email & WhatsApp',
         userId: user._id
       });
     } catch (err) {
-      user.otp = undefined;
-      user.otpExpires = undefined;
-      await user.save({ validateBeforeSave: false });
-      return res.status(500).json({ success: false, message: 'Email could not be sent' });
+      console.error('Notification failed:', err.message);
+      res.status(201).json({
+        success: true,
+        message: 'OTP generated (Email/WhatsApp failed)',
+        userId: user._id
+      });
     }
   } catch (error) {
     next(error);

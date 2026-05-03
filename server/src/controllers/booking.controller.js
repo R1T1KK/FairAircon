@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Service = require('../models/Service');
 const sendEmail = require('../utils/sendEmail');
+const sendWhatsApp = require('../utils/sendWhatsApp');
 
 // @desc    Create new booking
 // @route   POST /api/bookings
@@ -76,8 +77,22 @@ exports.createBooking = async (req, res, next) => {
         subject: `🚨 New Booking: ${populated.service.name} - ${populated.user.name}`,
         html: emailHtml
       });
+
+      // Send WhatsApp to Customer
+      await sendWhatsApp({
+        phone: populated.user.phone,
+        message: `Hello ${populated.user.name.split(' ')[0]}! 👋\n\nYour booking for *${populated.service.name}* at Fair Aircon is confirmed for ${new Date(scheduledDate).toLocaleDateString()} (${timeSlot}).\n\nOur team will contact you shortly. Thank you! ❄️`
+      });
+
+      // Send WhatsApp to Owner (Father)
+      if (process.env.ADMIN_PHONE) {
+        await sendWhatsApp({
+          phone: process.env.ADMIN_PHONE,
+          message: `🚨 *New Booking Alert!*\n\nCustomer: ${populated.user.name}\nService: ${populated.service.name}\nDate: ${new Date(scheduledDate).toLocaleDateString()}\nTime: ${timeSlot}\nPhone: ${populated.user.phone}`
+        });
+      }
     } catch (err) {
-      console.error('Failed to send booking notification email to owner', err);
+      console.error('Failed to send booking notifications', err);
     }
 
     res.status(201).json({ success: true, booking: populated });

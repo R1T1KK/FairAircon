@@ -4,15 +4,13 @@
   position: relative;
   overflow: hidden;
 
-  /* Smooth gradient transition blending from the services section above */
+  /* Blends with the global background */
   background: linear-gradient(to bottom,
-      rgba(144, 84, 255, 0.35) 0%,
-      /* matches mid-purple of body gradient */
-      rgba(255, 255, 255, 0.18) 40%,
-      /* brightens through the section */
-      rgba(160, 210, 235, 0.18) 100%
-      /* fades back to ice-blue tone */
+      rgba(144, 84, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.05) 40%,
+      rgba(0, 225, 255, 0.05) 100%
     );
+
   backdrop-filter: blur(2px);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);

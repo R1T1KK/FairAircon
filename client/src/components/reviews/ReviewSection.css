@@ -328,7 +328,7 @@
 .review-service-tag {
   display: inline-block;
   padding: 4px 14px;
-  background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+  background: transparent;
   color: var(--primary-700);
   border-radius: 20px;
   font-size: 0.78rem;
@@ -340,7 +340,7 @@
 }
 
 .review-card:hover .review-service-tag {
-  background: linear-gradient(135deg, var(--primary-100), var(--primary-200));
+  background: transparent;
   transform: translateY(-1px);
 }
 

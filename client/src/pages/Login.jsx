@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaSnowflake } from 'react-icons/fa';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiSmartphone } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Auth.css';
 
@@ -39,11 +39,27 @@ const Login = () => {
         <div className="auth-orb auth-orb-2"></div>
       </div>
       <div className="auth-card animate-fade-in-up">
+        {/* Navigation Tabs */}
+        <div className="auth-mode-tabs">
+          <span className="auth-mode-tab active">
+            Password Login
+          </span>
+          <Link to="/otp-login" className="auth-mode-tab">
+            OTP Login
+          </Link>
+        </div>
+
         <div className="auth-header">
           <FaSnowflake className="auth-logo-icon" />
           <h1>Welcome Back</h1>
           <p>Log in to your Fair Aircon account</p>
         </div>
+
+        <Link to="/otp-login" className="otp-switch-banner">
+          <FiSmartphone className="switch-icon" />
+          <span>Prefer passwordless? <strong>Login with Mobile OTP</strong></span>
+        </Link>
+
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
             <FiMail className="input-icon" />
@@ -62,7 +78,7 @@ const Login = () => {
             </Link>
           </div>
           <button type="submit" className="auth-submit-btn" disabled={loading}>
-            {loading ? 'Logging in...' : 'Log In'}
+            {loading ? 'Logging in...' : 'Log In with Password'}
           </button>
         </form>
         <p className="auth-footer-text">

@@ -184,3 +184,313 @@
   .auth-header h1 { font-size: 1.4rem; }
   .auth-page .auth-card .input-group input { padding: 12px 48px !important; }
 }
+
+/* =========================================================
+   OTP Authentication UI Enhancements
+   ========================================================= */
+
+.auth-mode-tabs {
+  display: flex;
+  background: rgba(224, 242, 254, 0.6);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(56, 163, 244, 0.15);
+}
+
+.auth-mode-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  border-radius: calc(var(--radius-md) - 2px);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.auth-mode-tab:hover:not(.active) {
+  color: var(--primary-600);
+}
+
+.auth-mode-tab.active {
+  background: white;
+  color: var(--primary-600);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.otp-switch-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(56, 163, 244, 0.08), rgba(6, 182, 212, 0.08));
+  border: 1px dashed var(--primary-300);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: var(--gray-700);
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.otp-switch-banner:hover {
+  background: linear-gradient(135deg, rgba(56, 163, 244, 0.14), rgba(6, 182, 212, 0.14));
+  border-color: var(--primary-500);
+  transform: translateY(-1px);
+}
+
+.otp-switch-banner .switch-icon {
+  font-size: 1.25rem;
+  color: var(--primary-600);
+  flex-shrink: 0;
+}
+
+.phone-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.country-code-badge {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--gray-700);
+  padding-right: 8px;
+  border-right: 1.5px solid var(--gray-300);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.auth-page .auth-card .phone-input-group input {
+  padding-left: 82px !important;
+  padding-right: 56px !important;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.digit-counter {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-400);
+}
+
+.otp-security-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--gray-500);
+  padding: 2px 4px;
+}
+
+.otp-security-pill .pill-icon {
+  color: var(--primary-500);
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+/* Phone Display Card in Step 2 */
+.otp-phone-display-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.phone-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--gray-800);
+  font-size: 0.95rem;
+}
+
+.phone-icon {
+  color: var(--primary-500);
+}
+
+.change-phone-link {
+  background: none;
+  border: none;
+  color: var(--primary-600);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.change-phone-link:hover {
+  color: var(--primary-700);
+}
+
+/* 6-Digit Split OTP Input Grid */
+.otp-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 6px;
+}
+
+.otp-input-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-align: center;
+}
+
+.otp-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.otp-digit-box {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  outline: none;
+  padding: 0 !important;
+}
+
+.otp-digit-box:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 4px rgba(56, 163, 244, 0.15);
+  transform: translateY(-2px);
+}
+
+.otp-digit-box.filled {
+  border-color: var(--primary-400);
+  background: #f8fafc;
+}
+
+.otp-has-error .otp-digit-box {
+  border-color: #ef4444;
+}
+
+/* Resend Countdown Row */
+.otp-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  font-size: 0.88rem;
+  color: var(--gray-600);
+}
+
+.timer-text strong {
+  color: var(--primary-600);
+  font-weight: 700;
+}
+
+.resend-otp-btn {
+  background: none;
+  border: none;
+  color: var(--primary-600);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: all 0.2s;
+}
+
+.resend-otp-btn:hover:not(:disabled) {
+  color: var(--primary-700);
+  text-decoration: underline;
+}
+
+.resend-otp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Back Ghost Button */
+.back-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--gray-500);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 10px;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.back-btn-ghost:hover {
+  color: var(--gray-800);
+}
+
+/* Alert Notification */
+.auth-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.btn-loading-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spin-icon {
+  animation: spin-anim 1s linear infinite;
+}
+
+@keyframes spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shake-anim {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake-anim 0.3s ease-in-out;
+}
+
+@media (max-width: 480px) {
+  .otp-digit-box {
+    width: 40px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+}

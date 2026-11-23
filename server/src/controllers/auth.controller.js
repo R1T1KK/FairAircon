@@ -1,8 +1,12 @@
 const User = require('../models/User');
+const Otp = require('../models/Otp');
 const generateToken = require('../utils/generateToken');
 const sendEmail = require('../utils/sendEmail');
 const sendWhatsApp = require('../utils/sendWhatsApp');
+const { sendOtpSms } = require('../utils/smsService');
+const { normalizePhone } = require('../utils/phoneHelper');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -72,39 +76,319 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// @desc    Verify OTP
+// @desc    Send OTP to Mobile Number
+// @route   POST /api/auth/send-otp
+exports.sendOtp = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+    const phoneCheck = normalizePhone(phone);
+
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: phoneCheck.error || 'Invalid phone number'
+      });
+    }
+
+    const normalized = phoneCheck.normalized;
+    const e164 = phoneCheck.e164;
+
+    // Check for existing active OTP and cooldown
+    const existingOtp = await Otp.findOne({ phone: normalized, isUsed: false }).sort({ createdAt: -1 });
+    if (existingOtp) {
+      const cooldownCheck = existingOtp.canResend(60);
+      if (!cooldownCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${cooldownCheck.remainingSeconds} seconds before requesting a new OTP.`,
+          remainingSeconds: cooldownCheck.remainingSeconds
+        });
+      }
+    }
+
+    // Cryptographically secure 6-digit OTP
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = await bcrypt.hash(rawOtp, 10);
+
+    // Invalidate any previous unused OTPs for this phone
+    await Otp.updateMany({ phone: normalized, isUsed: false }, { isUsed: true });
+
+    // Store hashed OTP with 5 minute expiration
+    const otpDoc = new Otp({
+      phone: normalized,
+      otpHash,
+      attempts: 0,
+      lastSentAt: new Date(),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      isUsed: false
+    });
+    await otpDoc.save();
+
+    // Dispatch SMS via configured provider (Twilio / MSG91 / Fast2SMS / dev mock)
+    await sendOtpSms({ phone: normalized, e164, otp: rawOtp });
+
+    // Dual dispatch: If user is already registered with email, send OTP to their email too
+    const existingUser = await User.findOne({ phone: normalized });
+    if (existingUser && existingUser.email) {
+      try {
+        await sendEmail({
+          email: existingUser.email,
+          subject: 'Fair Aircon - Your Login OTP',
+          html: `
+            <h2>Your Fair Aircon Verification Code</h2>
+            <p>Your 6-digit login OTP is: <strong style="font-size: 1.4rem; color: #0284c7;">${rawOtp}</strong></p>
+            <p>This code is valid for 5 minutes. Please do not share it with anyone.</p>
+          `
+        });
+      } catch (mailErr) {
+        console.warn('Dual-dispatch email failed:', mailErr.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully to your mobile number.',
+      phone: normalized,
+      cooldownSeconds: 60,
+      expiresInSeconds: 300
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Resend OTP to Mobile Number
+// @route   POST /api/auth/resend-otp
+exports.resendOtp = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+    const phoneCheck = normalizePhone(phone);
+
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: phoneCheck.error || 'Invalid phone number'
+      });
+    }
+
+    const normalized = phoneCheck.normalized;
+    const e164 = phoneCheck.e164;
+
+    const existingOtp = await Otp.findOne({ phone: normalized, isUsed: false }).sort({ createdAt: -1 });
+    if (existingOtp) {
+      const cooldownCheck = existingOtp.canResend(60);
+      if (!cooldownCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${cooldownCheck.remainingSeconds} seconds before resending OTP.`,
+          remainingSeconds: cooldownCheck.remainingSeconds
+        });
+      }
+    }
+
+    // Generate new secure OTP
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = await bcrypt.hash(rawOtp, 10);
+
+    // Invalidate previous OTPs
+    await Otp.updateMany({ phone: normalized, isUsed: false }, { isUsed: true });
+
+    const newOtp = new Otp({
+      phone: normalized,
+      otpHash,
+      attempts: 0,
+      lastSentAt: new Date(),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      isUsed: false
+    });
+    await newOtp.save();
+
+    await sendOtpSms({ phone: normalized, e164, otp: rawOtp });
+
+    // Dual dispatch for resend
+    const existingUser = await User.findOne({ phone: normalized });
+    if (existingUser && existingUser.email) {
+      try {
+        await sendEmail({
+          email: existingUser.email,
+          subject: 'Fair Aircon - Your Resent Login OTP',
+          html: `
+            <h2>Your Fair Aircon Verification Code</h2>
+            <p>Your resent 6-digit login OTP is: <strong style="font-size: 1.4rem; color: #0284c7;">${rawOtp}</strong></p>
+            <p>This code is valid for 5 minutes.</p>
+          `
+        });
+      } catch (mailErr) {
+        console.warn('Dual-dispatch resend email failed:', mailErr.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP resent successfully.',
+      phone: normalized,
+      cooldownSeconds: 60,
+      expiresInSeconds: 300
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify OTP (Supports Mobile Phone OTP and legacy Email OTP)
 // @route   POST /api/auth/verify-otp
 exports.verifyOtp = async (req, res, next) => {
   try {
-    const { userId, otp } = req.body;
-    const user = await User.findById(userId);
+    const { phone, otp, userId, name, email } = req.body;
 
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
-    }
-    if (user.otp !== otp) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
-    }
-    if (user.otpExpires < Date.now()) {
-      return res.status(400).json({ success: false, message: 'OTP has expired' });
-    }
-
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save({ validateBeforeSave: false });
-
-    const token = generateToken(user._id);
-    res.json({
-      success: true,
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role
+    // 1. MOBILE PHONE OTP FLOW
+    if (phone) {
+      const phoneCheck = normalizePhone(phone);
+      if (!phoneCheck.isValid) {
+        return res.status(400).json({ success: false, message: phoneCheck.error });
       }
+
+      if (!otp || typeof otp !== 'string' || otp.trim().length !== 6) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid 6-digit OTP' });
+      }
+
+      const normalized = phoneCheck.normalized;
+      const otpRecord = await Otp.findOne({ phone: normalized, isUsed: false }).sort({ createdAt: -1 });
+
+      if (!otpRecord) {
+        return res.status(400).json({
+          success: false,
+          message: 'No active OTP request found. Please request a new OTP.'
+        });
+      }
+
+      // Check Expiry (5 minutes)
+      if (new Date() > otpRecord.expiresAt) {
+        otpRecord.isUsed = true;
+        await otpRecord.save();
+        return res.status(400).json({
+          success: false,
+          message: 'OTP has expired. Please request a new one.'
+        });
+      }
+
+      // Check Verification Attempts (Max 5 attempts)
+      if (otpRecord.attempts >= 5) {
+        otpRecord.isUsed = true;
+        await otpRecord.save();
+        return res.status(429).json({
+          success: false,
+          message: 'Maximum verification attempts exceeded. Please request a new OTP.'
+        });
+      }
+
+      // Validate OTP with bcrypt
+      const isMatch = await otpRecord.verifyOtp(otp.trim());
+      if (!isMatch) {
+        otpRecord.attempts += 1;
+        await otpRecord.save();
+        const remaining = Math.max(0, 5 - otpRecord.attempts);
+        return res.status(400).json({
+          success: false,
+          message: remaining > 0
+            ? `Invalid OTP. ${remaining} attempts remaining.`
+            : 'Invalid OTP. Maximum attempts exceeded.',
+          remainingAttempts: remaining
+        });
+      }
+
+      // Invalidate OTP after successful verification (prevent reuse)
+      otpRecord.isUsed = true;
+      await otpRecord.save();
+
+      // Find existing user with this phone or create new user
+      let user = await User.findOne({ phone: normalized });
+      let isNewUser = false;
+
+      if (user) {
+        if (!user.isVerified) {
+          user.isVerified = true;
+          await user.save({ validateBeforeSave: false });
+        }
+      } else {
+        isNewUser = true;
+        const candidateName = name && name.trim() ? name.trim() : `Customer ${normalized.slice(-4)}`;
+        const candidateEmail = email && email.trim()
+          ? email.trim().toLowerCase()
+          : `${normalized}@fairaircon.user`;
+
+        // Ensure email uniqueness if fallback email exists
+        let finalEmail = candidateEmail;
+        const existingEmail = await User.findOne({ email: finalEmail });
+        if (existingEmail) {
+          finalEmail = `${normalized}_${Date.now()}@fairaircon.user`;
+        }
+
+        user = new User({
+          name: candidateName,
+          email: finalEmail,
+          phone: normalized,
+          password: crypto.randomBytes(16).toString('hex'),
+          isVerified: true,
+          role: 'user'
+        });
+        await user.save();
+      }
+
+      const token = generateToken(user._id);
+
+      return res.status(200).json({
+        success: true,
+        message: isNewUser ? 'Account registered and verified successfully!' : 'Login successful!',
+        token,
+        isNewUser,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          address: user.address
+        }
+      });
+    }
+
+    // 2. BACKWARD COMPATIBILITY: Legacy Email OTP Flow (userId)
+    if (userId) {
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(400).json({ success: false, message: 'User not found' });
+      }
+      if (user.otp !== otp) {
+        return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      }
+      if (user.otpExpires < Date.now()) {
+        return res.status(400).json({ success: false, message: 'OTP has expired' });
+      }
+
+      user.isVerified = true;
+      user.otp = undefined;
+      user.otpExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      const token = generateToken(user._id);
+      return res.json({
+        success: true,
+        token,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role
+        }
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide either mobile phone and OTP or registration userId.'
     });
   } catch (error) {
     next(error);
@@ -133,7 +417,7 @@ exports.login = async (req, res, next) => {
 
     // Admins and default users might not have isVerified locally if seeded, but enforce broadly
     if (user.role === 'user' && user.isVerified === false) {
-       return res.status(403).json({ success: false, message: 'Account is not verified. Please register again if you lost your OTP.'});
+      return res.status(403).json({ success: false, message: 'Account is not verified. Please register again if you lost your OTP.' });
     }
 
     const token = generateToken(user._id);

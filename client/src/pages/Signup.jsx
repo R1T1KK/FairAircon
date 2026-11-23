@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaSnowflake } from 'react-icons/fa';
-import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiSmartphone } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Auth.css';
 
@@ -70,6 +70,13 @@ const Signup = () => {
           <h1>{step === 1 ? 'Create Account' : 'Verify Email'}</h1>
           <p>{step === 1 ? 'Join Fair Aircon for the best AC services' : 'Enter the 6-digit OTP sent to your email'}</p>
         </div>
+
+        {step === 1 && (
+          <Link to="/otp-login" className="otp-switch-banner">
+            <FiSmartphone className="switch-icon" />
+            <span>Fast track: <strong>Sign up / Login with Mobile OTP</strong></span>
+          </Link>
+        )}
         
         {step === 1 ? (
           <form onSubmit={handleRegister} className="auth-form">

@@ -47,13 +47,43 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const verifyOtp = async (userId, otp) => {
-    const res = await api.post('/auth/verify-otp', { userId, otp });
+  const sendOtp = async (phone) => {
+    const res = await api.post('/auth/send-otp', { phone });
+    return res.data;
+  };
+
+  const resendOtp = async (phone) => {
+    const res = await api.post('/auth/resend-otp', { phone });
+    return res.data;
+  };
+
+  const verifyPhoneOtp = async (phone, otp, name = '') => {
+    const res = await api.post('/auth/verify-otp', { phone, otp, name });
     const { token: newToken, user: userData } = res.data;
-    localStorage.setItem('airfix_token', newToken);
-    setToken(newToken);
-    setUser(userData);
-    return userData;
+    if (newToken) {
+      localStorage.setItem('airfix_token', newToken);
+      setToken(newToken);
+      setUser(userData);
+    }
+    return res.data;
+  };
+
+  const verifyOtp = async (firstArg, secondArg) => {
+    // Support both verifyOtp(userId, otp) and verifyOtp({ phone, otp, name })
+    let payload;
+    if (typeof firstArg === 'object') {
+      payload = firstArg;
+    } else {
+      payload = { userId: firstArg, otp: secondArg };
+    }
+    const res = await api.post('/auth/verify-otp', payload);
+    const { token: newToken, user: userData } = res.data;
+    if (newToken) {
+      localStorage.setItem('airfix_token', newToken);
+      setToken(newToken);
+      setUser(userData);
+    }
+    return userData || res.data;
   };
 
   const logout = () => {
@@ -87,7 +117,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, verifyOtp, logout, updateProfile, updateAvatar, forgotPassword, resetPassword, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      login, 
+      register, 
+      sendOtp,
+      resendOtp,
+      verifyPhoneOtp,
+      verifyOtp, 
+      logout, 
+      updateProfile, 
+      updateAvatar, 
+      forgotPassword, 
+      resetPassword, 
+      isAdmin: user?.role === 'admin' 
+    }}>
       {children}
     </AuthContext.Provider>
   );

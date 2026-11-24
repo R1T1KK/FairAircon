@@ -35,9 +35,9 @@ const initSocket = (server) => {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id);
-      
+
       if (!user) return next(new Error('User not found'));
-      
+
       socket.user = user;
       next();
     } catch (err) {
@@ -63,7 +63,7 @@ const initSocket = (server) => {
     // Handle Technician location updates
     socket.on('update_location', async (data) => {
       const { bookingId, lat, lng } = data;
-      
+
       if (socket.user.role !== 'technician') return;
 
       try {

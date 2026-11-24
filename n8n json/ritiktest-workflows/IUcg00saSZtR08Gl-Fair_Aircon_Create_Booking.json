@@ -543,7 +543,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"booking_id\": \"{{ $('Validate Booking').item.json.booking_id }}\",\n  \"customer_name\": \"{{ $('Validate Booking').item.json.customer_name }}\",\n  \"phone\": \"{{ $('Validate Booking').item.json.phone }}\",\n  \"service\": \"{{ $('Validate Booking').item.json.service }}\",\n  \"date\": \"{{ $('Validate Booking').item.json.date }}\",\n  \"start_time\": \"{{ $('Validate Booking').item.json.start_time }}\",\n  \"end_time\": \"{{ $('Validate Booking').item.json.end_time }}\",\n  \"address\": \"{{ $('Validate Booking').item.json.address }}\",\n  \"city\": \"{{ $('Validate Booking').item.json.city }}\",\n  \"notes\": \"{{ $('Validate Booking').item.json.notes }}\",\n  \"source\": \"{{ $('Validate Booking').item.json.source }}\"\n}",
+        "jsonBody": "={{ JSON.stringify({\n  booking_id: $('Validate Booking').item.json.booking_id,\n  customer_name: $('Validate Booking').item.json.customer_name,\n  phone: $('Validate Booking').item.json.phone,\n  service: $('Validate Booking').item.json.service,\n  date: $('Validate Booking').item.json.date,\n  start_time: $('Validate Booking').item.json.start_time,\n  end_time: $('Validate Booking').item.json.end_time,\n  address: $('Validate Booking').item.json.address,\n  city: $('Validate Booking').item.json.city,\n  notes: $('Validate Booking').item.json.notes,\n  source: $('Validate Booking').item.json.source || 'whatsapp'\n}) }}",
         "options": {}
       },
       "id": "e89028bf-4a0b-4680-bc42-990e11894450",
@@ -554,6 +554,82 @@
         1152,
         416
       ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error ? true : ($json.success === false ? true : false) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e932b13f-22a3-4882-9908-11a5b8281134",
+      "name": "Sync Error Detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1cgQRWbwQfB_lID2GWk8bgzE1NYdTH5c_3TDtshjwaCI",
+          "cachedResultName": "Fair Aircon CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Errors"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now.setZone(\"Asia/Kolkata\").toFormat(\"yyyy-MM-dd HH:mm:ss\") }}",
+            "workflow": "Fair Aircon – Create Booking",
+            "node": "Sync Booking to Website",
+            "error_message": "={{ $json.error?.message || $json.message || \"Failed to sync booking to website MongoDB\" }}",
+            "execution_id": "={{ $execution.id || \"\" }}",
+            "execution_url": "={{ $execution.url || \"\" }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "904c643b-3d08-4e09-90d2-e568ba73722e",
+      "name": "Log Sync Failure to CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        416
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      },
       "onError": "continueRegularOutput"
     },
     {
@@ -1134,6 +1210,28 @@
           },
           {
             "node": "Sync Booking to Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync Booking to Website": {
+      "main": [
+        [
+          {
+            "node": "Sync Error Detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync Error Detected?": {
+      "main": [
+        [
+          {
+            "node": "Log Sync Failure to CRM",
             "type": "main",
             "index": 0
           }

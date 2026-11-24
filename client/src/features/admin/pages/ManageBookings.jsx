@@ -26,11 +26,14 @@ const ManageBookings = () => {
     const token = localStorage.getItem('airfix_token');
     if (!token) return;
 
-    const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
+    const SOCKET_BASE = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
     
-    const socket = io(API_BASE, {
+    const socket = io(SOCKET_BASE, {
       auth: { token },
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000
     });
 
     socket.on('connect', () => {

@@ -246,8 +246,86 @@ async function runTestSuite() {
     const body9 = await res9.json();
     assert(res9.status === 200 && body9.success === true, 'Health check OK');
 
+    // --- TEST 10: Simultaneous Race Condition (Concurrent Duplicate Requests) ---
+    console.log('\n--- TEST 10: Simultaneous Race Condition (Concurrent Requests) ---');
+    const raceBookingId = `FA-261124-1800-RACE${uniqueSuffix}`;
+    const racePayload = {
+      ...bookingPayload,
+      booking_id: raceBookingId,
+      phone: `+9198205${uniqueSuffix.padStart(5, '0')}`,
+      start_time: '18:00',
+      end_time: '19:00'
+    };
+
+    const [raceRes1, raceRes2] = await Promise.all([
+      fetch(`${baseUrl}/api/n8n/booking-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
+        body: JSON.stringify(racePayload)
+      }),
+      fetch(`${baseUrl}/api/n8n/booking-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
+        body: JSON.stringify(racePayload)
+      })
+    ]);
+
+    const raceBody1 = await raceRes1.json();
+    const raceBody2 = await raceRes2.json();
+    assert([200, 201].includes(raceRes1.status) && [200, 201].includes(raceRes2.status), 'Both concurrent requests handled safely without 500 error');
+    assert((raceBody1.duplicate === false && raceBody2.duplicate === true) || (raceBody1.duplicate === true && raceBody2.duplicate === false), 'Exactly one request created and other flagged as duplicate');
+    const raceCount = await Booking.countDocuments({ externalBookingId: raceBookingId });
+    assert(raceCount === 1, `Database contains exactly 1 document under concurrent load (count: ${raceCount})`);
+
+    // --- TEST 11: Website Booking Creation Regression Test ---
+    console.log('\n--- TEST 11: Website Booking API Regression Check (POST /api/bookings) ---');
+    // Create a regular user and token
+    const testWebUser = await User.create({
+      name: 'Web User Test',
+      email: `webuser_${uniqueSuffix}@fairaircon.test`,
+      phone: `98333${uniqueSuffix.padStart(5, '0')}`,
+      password: 'Password123!',
+      isVerified: true
+    });
+    const webUserToken = jwt.sign({ id: testWebUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Tomorrow's date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const res11 = await fetch(`${baseUrl}/api/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${webUserToken}`
+      },
+      body: JSON.stringify({
+        serviceId: testService._id,
+        scheduledDate: tomorrow.toISOString(),
+        timeSlot: '10:00-11:00',
+        address: {
+          street: '123 Marine Drive',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          pincode: '400020'
+        },
+        notes: 'Website booking test'
+      })
+    });
+    const body11 = await res11.json();
+    assert(res11.status === 201, `Website booking status is 201 Created (got ${res11.status})`);
+    assert(body11.booking?.source === 'website', `Website booking source defaults to "website" (got "${body11.booking?.source}")`);
+    assert(!body11.booking?.externalBookingId, 'Website booking has no externalBookingId (null/undefined)');
+
     // Cleanup test bookings
     console.log('\n🧹 Cleaning up test artifacts...');
+    await Booking.deleteMany({
+      externalBookingId: { $in: [testBookingId, secondBookingId, thirdBookingId, raceBookingId] }
+    });
+    if (body11.booking?._id) {
+      await Booking.findByIdAndDelete(body11.booking._id);
+    }
+    await User.findByIdAndDelete(testWebUser._id);
     await Booking.deleteMany({
       externalBookingId: { $in: [testBookingId, secondBookingId, thirdBookingId] }
     });

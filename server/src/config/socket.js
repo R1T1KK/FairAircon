@@ -4,14 +4,26 @@ const User = require('../models/User');
 
 let io;
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL
+]
+  .filter(Boolean)
+  .map(origin => origin.toLowerCase().replace(/\/$/, ''));
+
 const initSocket = (server) => {
   io = socketio(server, {
     cors: {
-      origin: [
-        'http://localhost:5173',
-        process.env.FRONTEND_URL
-      ].filter(Boolean),
-      methods: ["GET", "POST"]
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const sanitized = origin.toLowerCase().replace(/\/$/, '');
+        if (allowedOrigins.includes(sanitized) || sanitized.includes('fair-aircon.vercel.app')) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Socket CORS blocked for origin: ${origin}`), false);
+      },
+      methods: ["GET", "POST"],
+      credentials: true
     }
   });
 

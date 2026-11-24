@@ -106,15 +106,23 @@ async function findOrCreateUser(phone, customerName) {
   const crypto = require('crypto');
   const randomPassword = crypto.randomBytes(16).toString('hex');
   
-  user = await User.create({
-    name: customerName || 'WhatsApp Customer',
-    email: `wa_${normalizedPhone}@placeholder.fairaircon.com`,
-    phone: normalizedPhone,
-    password: randomPassword,
-    isVerified: false
-  });
-
-  return user;
+  try {
+    user = await User.create({
+      name: customerName || 'WhatsApp Customer',
+      email: `wa_${normalizedPhone}@placeholder.fairaircon.com`,
+      phone: normalizedPhone,
+      password: randomPassword,
+      isVerified: false
+    });
+    return user;
+  } catch (err) {
+    // If concurrent create for same user occurred, retrieve existing safely
+    if (err.code === 11000) {
+      user = await User.findOne({ phone: normalizedPhone });
+      if (user) return user;
+    }
+    throw err;
+  }
 }
 
 // @desc    Sync booking from n8n WhatsApp workflow
@@ -217,10 +225,10 @@ exports.syncBooking = async (req, res) => {
       { path: 'user', select: 'name email phone' }
     ]);
 
-    // --- Emit Socket.IO notification to admin ---
+    // --- Emit Socket.IO notification strictly to admin room ---
     try {
       const io = getIO();
-      io.emit('new_whatsapp_booking', {
+      io.to('admin_dashboard').emit('new_whatsapp_booking', {
         booking: {
           _id: populated._id,
           user: populated.user,

@@ -1,6 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { syncBooking } = require('../controllers/n8nSync.controller');
+
+/**
+ * Constant-time string comparison to prevent timing attacks
+ */
+function safeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 /**
  * n8n API Secret Authentication Middleware
@@ -25,7 +40,7 @@ const n8nAuth = (req, res, next) => {
     });
   }
 
-  if (apiSecret !== expectedSecret) {
+  if (!safeCompare(apiSecret, expectedSecret)) {
     return res.status(403).json({
       success: false,
       message: 'Invalid API credentials'

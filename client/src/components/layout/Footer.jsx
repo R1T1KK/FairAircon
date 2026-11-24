@@ -61,6 +61,11 @@ const Footer = () => {
 
           <div className="footer-bottom">
             <p>&copy; {new Date().getFullYear()} Fair Aircon. All rights reserved.</p>
+            <div className="footer-legal-links">
+              <Link to="/privacy">Privacy Policy</Link>
+              <span className="footer-legal-dot">•</span>
+              <Link to="/terms">Terms</Link>
+            </div>
           </div>
         </div>
       </div>

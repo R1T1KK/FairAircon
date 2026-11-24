@@ -1,0 +1,169 @@
+{
+  "name": "Fair Aircon – Error Handler",
+  "nodes": [
+    {
+      "id": "cc7c06ac-c11a-45e1-9d50-c5aa0b638f3c",
+      "name": "On Workflow Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e7096331-04c7-4ef4-9020-9e03190cf754",
+      "name": "Log Error to CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1cgQRWbwQfB_lID2GWk8bgzE1NYdTH5c_3TDtshjwaCI",
+          "cachedResultName": "Fair Aircon CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Errors"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now.setZone(\"Asia/Kolkata\").toFormat(\"yyyy-MM-dd HH:mm:ss\") }}",
+            "workflow": "={{ $json.workflow.name }}",
+            "node": "={{ $json.execution.lastNodeExecuted || \"\" }}",
+            "error_message": "={{ ($json.execution.error && $json.execution.error.message) || \"unknown error\" }}",
+            "execution_id": "={{ $json.execution.id || \"\" }}",
+            "execution_url": "={{ $json.execution.url || \"\" }}"
+          },
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "986cdbc3-ec79-414d-811b-d9f1db3b4225",
+      "name": "Alert Owner on WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "<__PLACEHOLDER_VALUE__WhatsApp Business phone number ID (from Meta)__>",
+        "recipientPhoneNumber": "<__PLACEHOLDER_VALUE__Owner WhatsApp number with country code__>",
+        "messageType": "text",
+        "textBody": "=Fair Aircon automation error\nWorkflow: {{ $(\"On Workflow Error\").item.json.workflow.name }}\nNode: {{ $(\"On Workflow Error\").item.json.execution.lastNodeExecuted || \"-\" }}\nError: {{ ($(\"On Workflow Error\").item.json.execution.error && $(\"On Workflow Error\").item.json.execution.error.message) || \"unknown\" }}\n{{ $(\"On Workflow Error\").item.json.execution.url || \"\" }}"
+      },
+      "credentials": {},
+      "onError": "continueRegularOutput",
+      "webhookId": "4f261271-4215-407c-ada7-a83d4ed18d12"
+    }
+  ],
+  "connections": {
+    "On Workflow Error": {
+      "main": [
+        [
+          {
+            "node": "Log Error to CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error to CRM": {
+      "main": [
+        [
+          {
+            "node": "Alert Owner on WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": null
+}

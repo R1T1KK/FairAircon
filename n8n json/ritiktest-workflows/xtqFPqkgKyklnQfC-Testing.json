@@ -1,0 +1,379 @@
+{
+  "name": "Testing",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0fcb73bd-c28d-4869-8cb7-c412e2ea8f39",
+      "name": "When chat message received",
+      "webhookId": "dbcf45c3-65ce-4961-b94e-1d3737e6e6a2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "# Restaurant AI Assistant – System Rules\n\nYou are a helpful and professional restaurant ordering assistant.\n\n## 1. Inventory Rules\n- Always check the Google Sheets Inventory tool before confirming any order.\n- Only allow customers to order food items that exist in the Inventory sheet.\n- Never invent food items or stock quantities.\n- If an item is not listed, politely say it is unavailable.\n- If stock quantity is 0, mark the item as Out of Stock.\n- Never accept an order quantity greater than the available stock.\n- If requested quantity exceeds available stock, tell the customer the exact available quantity and ask how many they want.\n\n## 2. Order Information\nBefore placing an order, collect:\n- Customer name\n- Phone number\n- Food item\n- Quantity\n\nAsk only for missing information. Do not repeatedly ask for information already provided.\n\n## 3. Order Confirmation\nBefore saving an order:\n- Verify the food item against current inventory.\n- Verify sufficient stock.\n- Confirm the item and quantity with the customer.\n- Do not claim an order is confirmed until the Google Sheets Orders tool successfully saves it.\n\n## 4. Google Sheets Orders\n- Use the Google Sheets Append Row tool to save confirmed orders.\n- Save Order ID, Customer Name, Food Item, Quantity, Order Date and Status.\n- Never claim that an order was saved if the tool failed.\n- Do not create duplicate orders for the same customer request.\n\n## 5. Stock Management\n- Never guess or manually invent remaining stock.\n- Never allow negative inventory.\n- Update inventory only after a successful order confirmation.\n- If inventory update fails, do not tell the customer that stock was deducted.\n\n## 6. Communication\n- Respond in the customer's language (Hindi, Hinglish or English).\n- Keep replies short, polite and clear.\n- Show the actual available quantity when relevant.\n- Never ask the customer for Spreadsheet ID or Sheet Name. These are already configured in the tools.\n\n## 7. Important Safety Rule\nNever confirm an order if inventory verification or order saving fails."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a484ecab-24dd-484d-a52b-7e637579e5b4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        208
+      ],
+      "id": "848d137e-72eb-4ca4-840e-cf9252cb4207",
+      "name": "Google Gemini Chat Model",
+      "notesInFlow": false,
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        208
+      ],
+      "id": "1a70c9dc-35d6-438a-b88c-a3b2af8c576d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Read all food inventory records from the Inventory sheet. Whenever the customer asks about available food items, stock quantity, or item availability, call this tool. Return the actual rows from Google Sheets. Do not ask the customer for Spreadsheet ID or Sheet Name because these are already configured.",
+        "documentId": {
+          "__rl": true,
+          "value": "1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg",
+          "mode": "list",
+          "cachedResultName": "restaurant_inventory_orders_faq",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 225904258,
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg/edit#gid=225904258"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        192
+      ],
+      "id": "677816aa-1185-4d03-830b-1be7fe8cd1f8",
+      "name": "Inventory",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg",
+          "mode": "list",
+          "cachedResultName": "restaurant_inventory_orders_faq",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 858146475,
+          "mode": "list",
+          "cachedResultName": "FAQ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg/edit#gid=858146475"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        320
+      ],
+      "id": "f652e3f9-26d3-4ef4-a052-95a99aa6acae",
+      "name": "FAQs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg",
+          "mode": "list",
+          "cachedResultName": "restaurant_inventory_orders_faq",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 776895255,
+          "mode": "list",
+          "cachedResultName": "Orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ltGlC9Hn1JV48oPnegBoc1r6J63nct29QhcbGcJCSCg/edit#gid=776895255"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Order_ID', ``, 'string') }}",
+            "Customer Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Customer_Name', ``, 'string') }}",
+            "Food Item": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Food_Item', ``, 'string') }}",
+            "Quantity": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Quantity', ``, 'string') }}",
+            "Order Date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Order_Date', ``, 'string') }}",
+            "Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Food Item",
+              "displayName": "Food Item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantity",
+              "displayName": "Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Date",
+              "displayName": "Order Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        208
+      ],
+      "id": "a838e942-9846-4df7-a0cb-b693103b2862",
+      "name": "Order Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        896,
+        192
+      ],
+      "id": "7e7e389e-75e2-4416-be25-ba5e18ce60fd",
+      "name": "WhatsApp Trigger",
+      "webhookId": "b8627179-1193-4ec0-b50e-f771f12bde3f",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "6aopwcan4pBLdknw",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        192
+      ],
+      "id": "faf4a942-530f-4ccf-ba82-6523cafb6b68",
+      "name": "Send message",
+      "webhookId": "a94e4e6b-f719-457b-a482-a9a13b996f7a"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inventory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FAQs": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

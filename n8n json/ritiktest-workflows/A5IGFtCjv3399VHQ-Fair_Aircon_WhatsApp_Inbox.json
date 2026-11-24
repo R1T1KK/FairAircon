@@ -1,0 +1,508 @@
+{
+  "name": "Fair Aircon – WhatsApp Inbox",
+  "nodes": [
+    {
+      "id": "da51e68a-1334-4b6e-8869-8c20f7e56255",
+      "name": "WhatsApp Message Received",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        96
+      ],
+      "parameters": {
+        "updates": [
+          "messages"
+        ]
+      },
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "6aopwcan4pBLdknw",
+          "name": "WhatsApp OAuth account"
+        }
+      },
+      "webhookId": "c2cd8f1a-467e-46b5-b656-b643c6877523"
+    },
+    {
+      "id": "191d22dd-b6ec-44f9-a87a-de250af2d56f",
+      "name": "Customer Messages Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.4,
+      "position": [
+        272,
+        224
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.messages || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "755bc7c2-6772-4315-976f-760babe0ae21",
+      "name": "Normalize Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        224
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "msg_id",
+              "value": "={{ $json.messages[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "n2",
+              "name": "wa_from",
+              "value": "={{ $json.messages[0].from }}",
+              "type": "string"
+            },
+            {
+              "id": "n3",
+              "name": "wa_name",
+              "value": "={{ ($json.contacts && $json.contacts[0] && $json.contacts[0].profile && $json.contacts[0].profile.name) || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "n4",
+              "name": "msg_type",
+              "value": "={{ $json.messages[0].type }}",
+              "type": "string"
+            },
+            {
+              "id": "n5",
+              "name": "msg_text",
+              "value": "={{ (($json.messages[0].text && $json.messages[0].text.body) || ($json.messages[0].interactive && (($json.messages[0].interactive.button_reply && $json.messages[0].interactive.button_reply.title) || ($json.messages[0].interactive.list_reply && $json.messages[0].interactive.list_reply.title))) || ($json.messages[0].button && $json.messages[0].button.text) || \"\").trim().slice(0, 2000) }}",
+              "type": "string"
+            },
+            {
+              "id": "n6",
+              "name": "phone_number_id",
+              "value": "={{ $json.metadata.phone_number_id }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5a64dd3a-b023-45b6-b32c-23c88ffbee65",
+      "name": "Skip Already Handled Messages",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        720,
+        224
+      ],
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "logic": "removeItemsWithAlreadySeenKeyValues",
+        "dedupeValue": "={{ $json.msg_id }}",
+        "options": {
+          "historySize": 10000
+        }
+      }
+    },
+    {
+      "id": "9552c95f-518c-46e5-9056-84e046ae0934",
+      "name": "Has Text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        224
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.msg_text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "d71ef6dc-d97f-4b6f-8b19-60c3bd36e275",
+      "name": "Ask Receptionist Agent",
+      "type": "n8n-nodes-base.messageAnAgent",
+      "typeVersion": 3.1,
+      "position": [
+        800,
+        208
+      ],
+      "parameters": {
+        "agentSource": "referenced",
+        "agentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "hrkzIao9rTHqazMu",
+          "cachedResultName": "Fair Aircon WhatsApp Receptionist"
+        },
+        "message": "=[Customer WhatsApp number: {{ $json.wa_from }} | WhatsApp name: {{ $json.wa_name || \"unknown\" }} | Now (IST): {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"cccc yyyy-MM-dd HH:mm\") }}]\n{{ $json.msg_text }}",
+        "advanced": {
+          "enableStreaming": false,
+          "invokeMode": "perItem",
+          "session": {
+            "session": {
+              "sessionIdType": "customKey",
+              "sessionKey": "={{ \"wa-\" + $json.wa_from }}"
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "86ff60a9-d1ae-43ed-a22c-f6cf7a85442f",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        128
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $(\"Normalize Message\").item.json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $(\"Normalize Message\").item.json.wa_from }}",
+        "messageType": "text",
+        "textBody": "={{ String($json.text || \"\").trim().slice(0, 4000) || \"Thanks for your message! Our team will get back to you shortly.\" }}"
+      },
+      "credentials": {},
+      "webhookId": "bfc3f048-5a60-4a82-a5da-050741dfeca9"
+    },
+    {
+      "id": "7910676e-442e-4400-bfdd-70e084836c72",
+      "name": "Send Fallback Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        320
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $(\"Normalize Message\").item.json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $(\"Normalize Message\").item.json.wa_from }}",
+        "messageType": "text",
+        "textBody": "Sorry, we are having a technical issue right now. Our team has been notified and will call you back shortly. - Fair Aircon"
+      },
+      "credentials": {},
+      "onError": "continueRegularOutput",
+      "webhookId": "bfa18f26-bc54-427d-9615-0db574596e25"
+    },
+    {
+      "id": "40a2acfc-e9f5-48b8-8fcd-76f3faf249c2",
+      "name": "Log Failed Conversation",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1472,
+        320
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1cgQRWbwQfB_lID2GWk8bgzE1NYdTH5c_3TDtshjwaCI",
+          "cachedResultName": "Fair Aircon CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Enquiries"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "enquiry_id": "={{ \"WA-\" + $(\"Normalize Message\").item.json.msg_id.slice(-12) }}",
+            "received_at": "={{ $now.setZone(\"Asia/Kolkata\").toFormat(\"yyyy-MM-dd HH:mm\") }}",
+            "source": "whatsapp",
+            "type": "callback",
+            "name": "={{ $(\"Normalize Message\").item.json.wa_name }}",
+            "phone": "={{ $(\"Normalize Message\").item.json.wa_from }}",
+            "email": "",
+            "city": "",
+            "service": "",
+            "message": "=AUTO-REPLY FAILED - call back. Customer wrote: {{ $(\"Normalize Message\").item.json.msg_text }}",
+            "status": "new"
+          },
+          "schema": [
+            {
+              "id": "enquiry_id",
+              "displayName": "enquiry_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "8cd65eaa-0781-4e16-8609-cc55154d1e8a",
+      "name": "Ask for Text Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        192
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $json.wa_from }}",
+        "messageType": "text",
+        "textBody": "Thanks! I can only read text messages right now. Please type your question or the service you need, and I will help you book it."
+      },
+      "credentials": {},
+      "onError": "continueRegularOutput",
+      "webhookId": "3c2df49f-2f3e-4feb-81ba-48884d61ea8b"
+    }
+  ],
+  "connections": {
+    "WhatsApp Message Received": {
+      "main": [
+        [
+          {
+            "node": "Customer Messages Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Messages Only": {
+      "main": [
+        [
+          {
+            "node": "Normalize Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Message": {
+      "main": [
+        [
+          {
+            "node": "Skip Already Handled Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Already Handled Messages": {
+      "main": [
+        [
+          {
+            "node": "Has Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Text?": {
+      "main": [
+        [
+          {
+            "node": "Ask Receptionist Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask for Text Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Receptionist Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Fallback Reply": {
+      "main": [
+        [
+          {
+            "node": "Log Failed Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": null
+}

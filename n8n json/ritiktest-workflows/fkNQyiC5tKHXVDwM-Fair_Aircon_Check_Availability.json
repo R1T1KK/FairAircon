@@ -1,0 +1,211 @@
+{
+  "name": "Fair Aircon – Check Availability",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"date\": \"2026-11-21\",\n  \"service\": \"AC General Servicing\",\n  \"preferred_time\": \"13:00\"\n}"
+      },
+      "id": "bc666ac3-4259-4dcc-8d4c-46634cc75e67",
+      "name": "Availability Request",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const TZ = 'Asia/Kolkata';\nconst SERVICES = {\n  'general servicing': 60, 'servicing': 60, 'service': 60,\n  'deep cleaning': 90, 'deep clean': 90, 'cleaning': 90,\n  'repair': 120, 'troubleshooting': 120,\n  'gas refilling': 60, 'gas refill': 60, 'gas': 60,\n  'installation': 180, 'install': 180,\n  'uninstallation': 120, 'uninstall': 120,\n  'maintenance': 60,\n};\nconst MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };\n// Normalizes common date inputs to YYYY-MM-DD (IST). Numeric day/month inputs are read day-first (Indian convention).\nfunction normalizeDate(v) {\n  if (v === null || v === undefined) return { iso: '', reason: 'missing' };\n  let s;\n  if (typeof v === 'number') s = DateTime.fromMillis(v, { zone: TZ }).toISO() || '';\n  else if (typeof v === 'object' && typeof v.toISO === 'function') s = v.toISO() || '';\n  else if (v instanceof Date) s = v.toISOString();\n  else s = String(v);\n  s = s.trim().replace(/^(mon|tue|wed|thu|fri|sat|sun)[a-z]*\\.?,?\\s+/i, '');\n  if (!s) return { iso: '', reason: 'missing' };\n  let y, m, d, mt;\n  if ((mt = s.match(/^(\\d{4})[-\\/.](\\d{1,2})[-\\/.](\\d{1,2})$/))) { y = +mt[1]; m = +mt[2]; d = +mt[3]; }\n  else if (/^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}/.test(s)) {\n    const dt = DateTime.fromISO(s.replace(' ', 'T'), { zone: TZ });\n    if (!dt.isValid) return { iso: '', reason: 'invalid' };\n    return { iso: dt.setZone(TZ).toFormat('yyyy-MM-dd') };\n  }\n  else if ((mt = s.match(/^(\\d{1,2})[-\\/.](\\d{1,2})[-\\/.](\\d{4})$/))) { d = +mt[1]; m = +mt[2]; y = +mt[3]; }\n  else if ((mt = s.match(/^(\\d{1,2})(?:st|nd|rd|th)?[\\s-]+([a-z]+)\\.?,?[\\s-]+(\\d{4})$/i))) { d = +mt[1]; m = MONTHS[mt[2].slice(0, 3).toLowerCase()]; y = +mt[3]; }\n  else if ((mt = s.match(/^([a-z]+)\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})$/i))) { m = MONTHS[mt[1].slice(0, 3).toLowerCase()]; d = +mt[2]; y = +mt[3]; }\n  else return { iso: '', reason: 'invalid' };\n  if (!m) return { iso: '', reason: 'invalid' };\n  const dt = DateTime.fromObject({ year: y, month: m, day: d }, { zone: TZ });\n  if (!dt.isValid) return { iso: '', reason: 'invalid' };\n  return { iso: dt.toFormat('yyyy-MM-dd') };\n}\n// Normalizes preferred time to 24h HH:mm. Accepts 14:00, 9:30, 2 pm, 2:30 PM.\nfunction normalizeTime(v) {\n  const s = String(v === null || v === undefined ? '' : v).trim().toLowerCase();\n  if (!s) return { value: '', ok: true };\n  const mt = s.match(/^(\\d{1,2})(?:[:.](\\d{2}))?\\s*(am|pm|a\\.m\\.|p\\.m\\.)?$/);\n  if (!mt) return { value: s, ok: false };\n  let h = +mt[1];\n  const min = mt[2] ? +mt[2] : 0;\n  const ap = mt[3] ? mt[3][0] : '';\n  if (!ap && !mt[2]) return { value: s, ok: false };\n  if (ap) { if (h < 1 || h > 12) return { value: s, ok: false }; if (ap === 'p' && h !== 12) h += 12; if (ap === 'a' && h === 12) h = 0; }\n  if (h > 23 || min > 59) return { value: s, ok: false };\n  return { value: String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0'), ok: true };\n}\n\nconst raw = $json;\nconst errors = [];\nconst dateInput = raw.date === null || raw.date === undefined ? '' : String(raw.date);\nconst nd = normalizeDate(raw.date);\nconst dateStr = nd.iso;\nconst serviceStr = String(raw.service || '').toLowerCase();\nconst nt = normalizeTime(raw.preferred_time);\nconst prefTime = nt.value;\n\nlet durationMin = 60;\nlet matched = false;\nconst keys = Object.keys(SERVICES).sort((a, b) => b.length - a.length);\nfor (const k of keys) {\n  if (serviceStr.includes(k)) { durationMin = SERVICES[k]; matched = true; break; }\n}\nif (!matched && serviceStr) durationMin = 60;\n\nconst day = DateTime.fromISO(dateStr, { zone: TZ });\nif (nd.reason === 'missing') {\n  errors.push('date is required (YYYY-MM-DD)');\n} else if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateStr) || !day.isValid) {\n  errors.push('date must be in YYYY-MM-DD format (received: ' + dateInput + ')');\n} else {\n  const today = DateTime.now().setZone(TZ).startOf('day');\n  if (day < today) errors.push('date is in the past');\n  if (day > today.plus({ days: 60 })) errors.push('bookings are accepted up to 60 days ahead');\n  if (day.weekday === 7) errors.push('we are closed on Sundays');\n}\nif (!nt.ok) errors.push('preferred_time must be HH:mm (24h)');\n\nconst dayStart = day.isValid ? day.set({ hour: 9, minute: 0, second: 0, millisecond: 0 }) : null;\nconst dayEnd = day.isValid ? day.set({ hour: 19, minute: 0, second: 0, millisecond: 0 }) : null;\n\nreturn {\n  json: {\n    valid: errors.length === 0,\n    errors,\n    date: dateStr,\n    date_input: dateInput,\n    service: raw.service || '',\n    service_matched: matched,\n    duration_min: durationMin,\n    preferred_time: prefTime,\n    day_start: dayStart ? dayStart.toISO() : '',\n    day_end: dayEnd ? dayEnd.toISO() : '',\n  },\n};"
+      },
+      "id": "c7bb589b-6f6c-4bc3-82d7-1fa73f13f4ab",
+      "name": "Validate Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "272e20c7-4401-478a-9dc1-474648e546a0"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "dd39c3de-2356-413d-a9a0-1b6f7d447643",
+      "name": "Is Request Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "ritikxyzxyz@gmail.com",
+          "mode": "list",
+          "cachedResultName": "ritikxyzxyz@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $json.day_start }}",
+        "timeMax": "={{ $json.day_end }}",
+        "options": {
+          "orderBy": "startTime",
+          "recurringEventHandling": "expand"
+        }
+      },
+      "id": "69a8148d-1a51-411d-b458-8fe5b32b844a",
+      "name": "Get Technician Events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.4,
+      "position": [
+        672,
+        0
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "qoBTrriaXf8KPF2o",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const TZ = 'Asia/Kolkata';\nconst req = $('Validate Request').first().json;\nconst events = $input.all().map(i => i.json).filter(e => e && (e.start || e.end));\nconst busy = [];\nfor (const e of events) {\n  if (e.status === 'cancelled' || e.transparency === 'transparent') continue;\n  if (e.start && e.start.date && !e.start.dateTime) {\n    busy.push({ s: DateTime.fromISO(req.day_start), e: DateTime.fromISO(req.day_end) });\n    continue;\n  }\n  busy.push({ s: DateTime.fromISO(e.start.dateTime).setZone(TZ), e: DateTime.fromISO(e.end.dateTime).setZone(TZ) });\n}\nconst dayStart = DateTime.fromISO(req.day_start).setZone(TZ);\nconst dayEnd = DateTime.fromISO(req.day_end).setZone(TZ);\nconst now = DateTime.now().setZone(TZ).plus({ hours: 2 });\nconst slots = [];\nlet cursor = dayStart;\nwhile (cursor.plus({ minutes: req.duration_min }) <= dayEnd) {\n  const end = cursor.plus({ minutes: req.duration_min });\n  const overlaps = busy.some(b => cursor < b.e && end > b.s);\n  if (!overlaps && cursor >= now) slots.push(cursor.toFormat('HH:mm'));\n  cursor = cursor.plus({ minutes: 30 });\n}\nlet preferredAvailable = null;\nif (req.preferred_time) {\n  const parts = req.preferred_time.split(':');\n  const hh = String(parts[0]).padStart(2, '0');\n  preferredAvailable = slots.includes(hh + ':' + parts[1]);\n}\nreturn [{ json: {\n  ok: true,\n  date: req.date,\n  service: req.service,\n  estimated_duration_minutes: req.duration_min,\n  working_hours: 'Mon-Sat 09:00-19:00 IST',\n  available_start_times: slots,\n  preferred_time: req.preferred_time || null,\n  preferred_time_available: preferredAvailable,\n  message: slots.length ? 'Free start times found. Offer the customer up to 4 options.' : 'No free slots on this date. Suggest another date.',\n} }];"
+      },
+      "id": "3be993d5-6cbc-4784-a731-464c2301c30c",
+      "name": "Compute Free Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "ok",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "a2",
+              "name": "available_start_times",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "a3",
+              "name": "message",
+              "value": "=Cannot check availability: {{ $json.errors.join(\"; \") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "98432bdc-590b-4c84-b838-5f9832dd02e7",
+      "name": "Invalid Request Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        192
+      ]
+    }
+  ],
+  "connections": {
+    "Availability Request": {
+      "main": [
+        [
+          {
+            "node": "Validate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Request": {
+      "main": [
+        [
+          {
+            "node": "Is Request Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Request Valid?": {
+      "main": [
+        [
+          {
+            "node": "Get Technician Events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Request Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Technician Events": {
+      "main": [
+        [
+          {
+            "node": "Compute Free Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": null
+}

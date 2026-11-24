@@ -1,0 +1,1218 @@
+{
+  "name": "Fair Aircon – Create Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "22ddd657-7d23-42ca-b7b0-886a8cd46e9a",
+      "name": "Booking Request",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1152,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "cfg_phone_number_id",
+              "value": "1510028005517467",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "cfg_owner_phone",
+              "value": "919820454487",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "cfg_technician_phone",
+              "value": "919820454487",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "cfg_technician_name",
+              "value": "Ravi Kashyap",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "b7ce863f-6640-4646-bd29-af66d7aae935",
+      "name": "Business Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -864,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const TZ = 'Asia/Kolkata';\nconst SERVICES = [\n  ['general servicing', 'AC General Servicing', 60], ['deep clean', 'AC Deep Cleaning', 90],\n  ['repair', 'AC Repair and Troubleshooting', 120], ['troubleshoot', 'AC Repair and Troubleshooting', 120],\n  ['gas', 'AC Gas Refilling', 60], ['uninstall', 'AC Uninstallation', 120],\n  ['install', 'AC Installation', 180], ['maintenance', 'AC Maintenance', 60],\n  ['cleaning', 'AC Deep Cleaning', 90], ['servic', 'AC General Servicing', 60],\n];\nconst r = $json;\nconst errors = [];\nconst clean = v => String(v == null ? '' : v).trim();\nconst name = clean(r.customer_name || r.name);\nconst address = clean(r.address);\nconst city = clean(r.city);\nconst notes = clean(r.notes).slice(0, 500);\nconst source = clean(r.source).toLowerCase() || 'whatsapp';\nlet phone = clean(r.phone).replace(/[^0-9]/g, '');\nif (phone.length === 10) phone = '91' + phone;\nif (phone.length === 11 && phone.startsWith('0')) phone = '91' + phone.slice(1);\nif (!/^\\d{11,15}$/.test(phone)) errors.push('phone must be a valid mobile number with country code');\nif (name.length < 2) errors.push('customer_name is required');\nif (address.length < 8) errors.push('full service address is required');\n\nconst svcIn = clean(r.service).toLowerCase();\nlet service = '', duration = 0\nfor (const s of SERVICES) { if (svcIn.includes(s[0])) { service = s[1]; duration = s[2]; break; } }\nif (!service) errors.push('service must be one of: General Servicing, Deep Cleaning, Repair, Gas Refilling, Installation, Uninstallation, Maintenance');\n\nconst dateStr = clean(r.date);\nconst timeStr = clean(r.start_time || r.preferred_time);\nlet start = null, end = null;\nif (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateStr)) errors.push('date must be YYYY-MM-DD');\nif (!/^\\d{1,2}:\\d{2}$/.test(timeStr)) errors.push('start_time must be HH:mm (24h)');\nif (!errors.some(e => e.startsWith('date') || e.startsWith('start_time'))) {\n  const [hh, mm] = timeStr.split(':').map(Number);\n  start = DateTime.fromISO(dateStr, { zone: TZ }).set({ hour: hh, minute: mm, second: 0, millisecond: 0 });\n  if (!start.isValid) errors.push('invalid date/time');\n  else {\n    end = start.plus({ minutes: duration || 60 });\n    const open = start.set({ hour: 9, minute: 0 });\n    const close = start.set({ hour: 19, minute: 0 });\n    if (start.weekday === 7) errors.push('we are closed on Sundays');\n    if (start < open || end > close) errors.push('booking must fit within working hours 09:00-19:00');\n    if (start < DateTime.now().setZone(TZ).plus({ hours: 1 })) errors.push('booking time must be at least 1 hour from now');\n  }\n}\nconst bookingId = (start && phone)\n  ? 'FA-' + start.toFormat('yyMMdd-HHmm') + '-' + phone.slice(-4)\n  : '';\nreturn { json: {\n  valid: errors.length === 0,\n  errors,\n  booking_id: bookingId,\n  customer_name: name,\n  phone,\n  service,\n  duration_min: duration,\n  date: dateStr,\n  start_time: start ? start.toFormat('HH:mm') : timeStr,\n  end_time: end ? end.toFormat('HH:mm') : '',\n  start_iso: start ? start.toISO() : '',\n  end_iso: end ? end.toISO() : '',\n  address,\n  city,\n  notes,\n  source,\n  display_when: start ? start.toFormat(\"cccc, d LLL yyyy 'at' h:mm a\") : '',\n} };"
+      },
+      "id": "581de552-d519-4491-9024-7cade91de648",
+      "name": "Validate Booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6013c2be-c72e-429a-926d-0eb7055f5861",
+      "name": "Is Booking Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "012e2333-ce1c-44cd-9e81-ae98ef1339cd",
+      "name": "Validation Failed Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -192,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1cgQRWbwQfB_lID2GWk8bgzE1NYdTH5c_3TDtshjwaCI",
+          "cachedResultName": "Fair Aircon CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Bookings"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "booking_id",
+              "lookupValue": "={{ $json.booking_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "b7326c0c-8094-4cde-b9a0-c3582780cbac",
+      "name": "Find Existing Booking",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -192,
+        576
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.booking_id || \"\" }}",
+              "rightValue": "={{ $(\"Validate Booking\").item.json.booking_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{ String($json.status || \"\").toLowerCase() }}",
+              "rightValue": "cancelled",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7bf22fbf-73a2-4915-89ac-fb99fc24cdf0",
+      "name": "Already Booked?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "ok",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "d2",
+              "name": "status",
+              "value": "already_booked",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "booking_id",
+              "value": "={{ $(\"Validate Booking\").item.json.booking_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d4",
+              "name": "message",
+              "value": "=This booking already exists ({{ $(\"Validate Booking\").item.json.booking_id }}) for {{ $(\"Validate Booking\").item.json.display_when }}. No new booking was created.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "96811fa8-e23e-41b8-b057-f47ae26febe0",
+      "name": "Duplicate Booking Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "ritikxyzxyz@gmail.com",
+          "cachedResultName": "ritikxyzxyz@gmail.com"
+        },
+        "timeMin": "={{ $(\"Validate Booking\").item.json.start_iso }}",
+        "timeMax": "={{ $(\"Validate Booking\").item.json.end_iso }}",
+        "options": {
+          "outputFormat": "availability"
+        }
+      },
+      "id": "36831416-ac03-4cee-a4d0-94bf5136d4b3",
+      "name": "Check Slot Still Free",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.4,
+      "position": [
+        256,
+        672
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "qoBTrriaXf8KPF2o",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.available }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "13ef8e1d-3570-4133-9d37-62d56d28ab6c",
+      "name": "Slot Free?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "ritikxyzxyz@gmail.com",
+          "cachedResultName": "ritikxyzxyz@gmail.com"
+        },
+        "start": "={{ $(\"Validate Booking\").item.json.start_iso }}",
+        "end": "={{ $(\"Validate Booking\").item.json.end_iso }}",
+        "additionalFields": {
+          "description": "=Booking ID: {{ $(\"Validate Booking\").item.json.booking_id }}\nCustomer: {{ $(\"Validate Booking\").item.json.customer_name }}\nPhone: +{{ $(\"Validate Booking\").item.json.phone }}\nNotes: {{ $(\"Validate Booking\").item.json.notes }}\nSource: {{ $(\"Validate Booking\").item.json.source }}",
+          "location": "={{ $(\"Validate Booking\").item.json.address }}{{ $(\"Validate Booking\").item.json.city ? \", \" + $(\"Validate Booking\").item.json.city : \"\" }}",
+          "summary": "={{ $(\"Validate Booking\").item.json.service }} - {{ $(\"Validate Booking\").item.json.customer_name }}"
+        }
+      },
+      "id": "a1dc16db-15b4-45a9-a61b-eb6da688ea58",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.4,
+      "position": [
+        704,
+        576
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "qoBTrriaXf8KPF2o",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1cgQRWbwQfB_lID2GWk8bgzE1NYdTH5c_3TDtshjwaCI",
+          "cachedResultName": "Fair Aircon CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Bookings"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "booking_id"
+          ],
+          "value": {
+            "booking_id": "={{ $(\"Validate Booking\").item.json.booking_id }}",
+            "created_at": "={{ $now.setZone(\"Asia/Kolkata\").toFormat(\"yyyy-MM-dd HH:mm\") }}",
+            "customer_name": "={{ $(\"Validate Booking\").item.json.customer_name }}",
+            "phone": "={{ $(\"Validate Booking\").item.json.phone }}",
+            "service": "={{ $(\"Validate Booking\").item.json.service }}",
+            "date": "={{ $(\"Validate Booking\").item.json.date }}",
+            "start_time": "={{ $(\"Validate Booking\").item.json.start_time }}",
+            "end_time": "={{ $(\"Validate Booking\").item.json.end_time }}",
+            "address": "={{ $(\"Validate Booking\").item.json.address }}",
+            "city": "={{ $(\"Validate Booking\").item.json.city }}",
+            "notes": "={{ $(\"Validate Booking\").item.json.notes }}",
+            "status": "confirmed",
+            "technician": "={{ $(\"Business Config\").item.json.cfg_technician_name }}",
+            "calendar_event_id": "={{ $json.id }}",
+            "source": "={{ $(\"Validate Booking\").item.json.source }}"
+          },
+          "schema": [
+            {
+              "id": "booking_id",
+              "displayName": "booking_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "start_time",
+              "displayName": "start_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "end_time",
+              "displayName": "end_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "technician",
+              "displayName": "technician",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "calendar_event_id",
+              "displayName": "calendar_event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "561b1152-1063-4c4c-b084-13cec87cb3ad",
+      "name": "Save Booking to CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1040,
+        576
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1cgQRWbwQfB_lID2GWk8bgzE1NYdTH5c_3TDtshjwaCI",
+          "cachedResultName": "Fair Aircon CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Customers"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "phone"
+          ],
+          "value": {
+            "phone": "={{ $(\"Validate Booking\").item.json.phone }}",
+            "name": "={{ $(\"Validate Booking\").item.json.customer_name }}",
+            "address": "={{ $(\"Validate Booking\").item.json.address }}",
+            "city": "={{ $(\"Validate Booking\").item.json.city }}",
+            "last_booking_id": "={{ $(\"Validate Booking\").item.json.booking_id }}",
+            "last_contact": "={{ $now.setZone(\"Asia/Kolkata\").toFormat(\"yyyy-MM-dd HH:mm\") }}",
+            "source": "={{ $(\"Validate Booking\").item.json.source }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_booking_id",
+              "displayName": "last_booking_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_contact",
+              "displayName": "last_contact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "04803356-2382-410f-a34f-8b575befa9ca",
+      "name": "Upsert Customer",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        576
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8RMxo0Ezgzz8NfrA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $(\"Business Config\").item.json.cfg_phone_number_id }}",
+        "recipientPhoneNumber": "+919137860398",
+        "textBody": "Hi Ritik Kashyap! 👋\n\nYour Fair Aircon booking is confirmed.\n\nBooking ID: FA-261121-1300-4487\nService: AC General Servicing\nDate: 21 November 2026\nTime: 1:00 PM – 2:00 PM\nAddress: Malad West, Mumbai\nTechnician: Ravi Kashyap\n\nThank you for choosing Fair Aircon!",
+        "additionalFields": {}
+      },
+      "id": "09d48670-73bc-4475-9806-666776cd2ddb",
+      "name": "Confirm to Customer",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1488,
+        576
+      ],
+      "webhookId": "5940fe85-7b2e-4f57-844b-e49595caedb8",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ZJqcaXUK0c5CO2pQ",
+          "name": "WhatsApp account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $(\"Business Config\").item.json.cfg_phone_number_id }}",
+        "recipientPhoneNumber": "+919137860398",
+        "textBody": "=New job assigned: {{ $(\"Validate Booking\").item.json.booking_id }}\n{{ $(\"Validate Booking\").item.json.service }}\n{{ $(\"Validate Booking\").item.json.display_when }}\nCustomer: {{ $(\"Validate Booking\").item.json.customer_name }} (+{{ $(\"Validate Booking\").item.json.phone }})\nAddress: {{ $(\"Validate Booking\").item.json.address }} {{ $(\"Validate Booking\").item.json.city }}\nNotes: {{ $(\"Validate Booking\").item.json.notes || \"-\" }}",
+        "additionalFields": {}
+      },
+      "id": "d22d90db-8c09-422b-b18b-6ab8f6e021f3",
+      "name": "Notify Technician",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        576
+      ],
+      "webhookId": "874c77b6-68bf-4948-9c0d-7b4cff1fd69e",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ZJqcaXUK0c5CO2pQ",
+          "name": "WhatsApp account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $(\"Business Config\").item.json.cfg_phone_number_id }}",
+        "recipientPhoneNumber": "+919137860398",
+        "textBody": "=New booking {{ $(\"Validate Booking\").item.json.booking_id }} ({{ $(\"Validate Booking\").item.json.source }})\n{{ $(\"Validate Booking\").item.json.service }} - {{ $(\"Validate Booking\").item.json.display_when }}\n{{ $(\"Validate Booking\").item.json.customer_name }}, +{{ $(\"Validate Booking\").item.json.phone }}\n{{ $(\"Validate Booking\").item.json.address }} {{ $(\"Validate Booking\").item.json.city }}",
+        "additionalFields": {}
+      },
+      "id": "ca37d8f9-c6b9-4270-bd55-7f575796e1f3",
+      "name": "Notify Owner",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1936,
+        576
+      ],
+      "webhookId": "5c2dbb80-7887-4fd9-adee-4c4aa4f27928",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ZJqcaXUK0c5CO2pQ",
+          "name": "WhatsApp account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "ok",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "r2",
+              "name": "status",
+              "value": "confirmed",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "booking_id",
+              "value": "={{ $(\"Validate Booking\").item.json.booking_id }}",
+              "type": "string"
+            },
+            {
+              "id": "r4",
+              "name": "service",
+              "value": "={{ $(\"Validate Booking\").item.json.service }}",
+              "type": "string"
+            },
+            {
+              "id": "r5",
+              "name": "when",
+              "value": "={{ $(\"Validate Booking\").item.json.display_when }}",
+              "type": "string"
+            },
+            {
+              "id": "r6",
+              "name": "message",
+              "value": "=Booking confirmed and saved. A WhatsApp confirmation was sent to the customer. Tell the customer the booking ID {{ $(\"Validate Booking\").item.json.booking_id }}.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c06d196-f390-43dc-83c3-db00ad6f9266",
+      "name": "Booking Confirmed Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2160,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "ok",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "s2",
+              "name": "status",
+              "value": "slot_unavailable",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "message",
+              "value": "That time slot is no longer available. Run check_availability again and offer the customer other times.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e0d5c0a0-9d33-4053-84af-a27b969d1453",
+      "name": "Slot Taken Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        320
+      ],
+      "id": "14da8f96-a861-42c3-9306-8b2cd4466f4e",
+      "name": "WhatsApp Trigger",
+      "webhookId": "34b4c90f-4bd4-4146-9e8e-7516170fc3a3",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "6aopwcan4pBLdknw",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are the friendly AI receptionist for Fair Aircon, an AC service business in Mumbai.\n\nCOMMUNICATION:\n- Reply in the customer's language: Hindi, English or Hinglish.\n- Keep messages short, natural and polite.\n- Ask one question at a time.\n- Collect customer name, phone number, service type, date, preferred time and complete address.\n\nSERVICES:\n- AC General Servicing\n- AC Deep Cleaning\n- AC Repair and Troubleshooting\n- AC Gas Refilling\n- AC Installation\n- AC Uninstallation\n- AC Maintenance\n\nBOOKING RULES:\n1. Collect missing booking details before checking availability.\n2. Use Check Availability tool to verify available slots.\n3. Never invent or assume availability.\n4. Show available slots and ask the customer to choose.\n5. Before booking, repeat all booking details and ask for explicit confirmation.\n6. Only after customer confirms, call Create Booking tool.\n7. Never tell the customer that a booking is confirmed unless the tool returns confirmed status and a booking ID.\n8. If booking fails, politely explain and offer another slot.\n9. Never make duplicate bookings.\n\nBUSINESS HOURS:\nMonday to Saturday, 9 AM to 7 PM.\nSunday closed.\n\nNever invent prices. If asked about prices, say the team will confirm them."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1664,
+        320
+      ],
+      "id": "0b7477b3-9c7b-4161-961b-e0de283670da",
+      "name": "AI Agent",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -1936,
+        672
+      ],
+      "id": "fd60965b-8a26-4872-916c-c282a0ac6348",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "{{ $json.messages?.[0]?.from || $json.contacts?.[0]?.wa_id || $json.from }}",
+        "databaseName": "admin"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryMongoDbChat",
+      "typeVersion": 1.1,
+      "position": [
+        -1712,
+        672
+      ],
+      "id": "98419ca1-85e6-4610-be79-8c032fae3b3e",
+      "name": "MongoDB Chat Memory",
+      "credentials": {
+        "mongoDb": {
+          "id": "eho4cN34RsrKg9Bw",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Check available AC service appointment slots for the customer. Use this tool only after collecting the service date and service type. Ask for a preferred time if the customer has one. Never confirm a booking using this tool. Return available start times and any validation message.",
+        "workflowId": {
+          "__rl": true,
+          "value": "fkNQyiC5tKHXVDwM",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/fkNQyiC5tKHXVDwM",
+          "cachedResultName": "AC whatsapp automation — Fair Aircon – Check Availability"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $fromAI('date', ``, 'string') }}",
+            "service": "={{ $fromAI('service', ``, 'string') }}",
+            "preferred_time": "={{ $fromAI('preferred_time', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "preferred_time",
+              "displayName": "preferred_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -1552,
+        720
+      ],
+      "id": "5c3eaa0c-75d2-4075-8e86-fa0ddac5e0b5",
+      "name": "Call 'Fair Aircon – Check Availability'"
+    },
+    {
+      "parameters": {
+        "description": "Create an AC service booking only after the customer has explicitly confirmed the booking details. Collect customer name, phone number, service type, date, start time and complete address. Call this tool only after checking availability. Never book without customer confirmation. Return the booking status and booking ID.",
+        "workflowId": {
+          "__rl": true,
+          "value": "IUcg00saSZtR08Gl",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/IUcg00saSZtR08Gl",
+          "cachedResultName": "AC whatsapp automation — Fair Aircon – Create Booking"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -1312,
+        688
+      ],
+      "id": "fd86bbbc-f0af-4b73-bc51-b2ca45be60b7",
+      "name": "Call 'Fair Aircon – Create Booking'"
+    }
+  ],
+  "connections": {
+    "Booking Request": {
+      "main": [
+        [
+          {
+            "node": "Business Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Business Config": {
+      "main": [
+        [
+          {
+            "node": "Validate Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Booking": {
+      "main": [
+        [
+          {
+            "node": "Is Booking Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Booking Valid?": {
+      "main": [
+        [
+          {
+            "node": "Find Existing Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validation Failed Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Existing Booking": {
+      "main": [
+        [
+          {
+            "node": "Already Booked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already Booked?": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Booking Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Slot Still Free",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slot Still Free": {
+      "main": [
+        [
+          {
+            "node": "Slot Free?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Free?": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slot Taken Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Save Booking to CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Booking to CRM": {
+      "main": [
+        [
+          {
+            "node": "Upsert Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Customer": {
+      "main": [
+        [
+          {
+            "node": "Confirm to Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm to Customer": {
+      "main": [
+        [
+          {
+            "node": "Notify Technician",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Technician": {
+      "main": [
+        [
+          {
+            "node": "Notify Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Owner": {
+      "main": [
+        [
+          {
+            "node": "Booking Confirmed Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Fair Aircon – Check Availability'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Fair Aircon – Create Booking'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

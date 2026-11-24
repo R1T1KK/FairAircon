@@ -28,9 +28,9 @@ const bookingSchema = new mongoose.Schema({
   },
   address: {
     street: { type: String, required: true },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    pincode: { type: String, required: true }
+    city: { type: String, required: true, default: 'Mumbai' },
+    state: { type: String, default: 'Maharashtra' },
+    pincode: { type: String, default: '400001' }
   },
   status: {
     type: String,
@@ -55,6 +55,16 @@ const bookingSchema = new mongoose.Schema({
   notes: {
     type: String,
     default: ''
+  },
+  source: {
+    type: String,
+    enum: ['website', 'whatsapp', 'phone'],
+    default: 'website'
+  },
+  externalBookingId: {
+    type: String,
+    unique: true,
+    sparse: true  // allows multiple null values
   }
 }, {
   timestamps: true

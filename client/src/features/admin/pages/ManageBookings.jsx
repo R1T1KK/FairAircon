@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../../services/api';
 import { FiSearch } from 'react-icons/fi';
+import { BsWhatsapp } from 'react-icons/bs';
 import toast from 'react-hot-toast';
+import io from 'socket.io-client';
 import '../Admin.css';
 
 const ManageBookings = () => {
@@ -10,11 +12,65 @@ const ManageBookings = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const socketRef = useRef(null);
+  const notifiedBookingsRef = useRef(new Set());
 
   useEffect(() => {
     fetchBookings();
     fetchTechnicians();
   }, [statusFilter]);
+
+  // Socket.IO for real-time WhatsApp booking notifications
+  useEffect(() => {
+    const token = localStorage.getItem('airfix_token');
+    if (!token) return;
+
+    const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
+    
+    const socket = io(API_BASE, {
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('Admin Socket connected for booking notifications');
+    });
+
+    socket.on('new_whatsapp_booking', (data) => {
+      const bookingId = data.booking?._id || data.booking?.externalBookingId;
+      
+      // Prevent duplicate notifications
+      if (notifiedBookingsRef.current.has(bookingId)) return;
+      notifiedBookingsRef.current.add(bookingId);
+      
+      // Play notification sound (respects autoplay)
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1xeHSHeIOLeHB5b3V+gHaFjIR1b3JvdHt+eIKKhHdxcW92fH55g4mGe3Vycnh+fnqBh4R6dnR0en9+eoGGg3t3dXZ7f356gYWBe3h2eHx/fXuBhIF7eXd5fH99fICDgHt5eHp9f318gIKAe3l4en1/fXyAgoB7enh6fX99fICCgHt6eXt+f319gIJ/fHp5e35/fX2Agn98enl7fn99fYCBf3x6ent+f319gIF/fHt6e35/fX2AgX98e3p7fn99fYCBf3x7ent+f319gIF/fHt7fH5/fX2AgX98e3t8fn99fYCBf3x7e3x+f31+gIF/fHt7fH5/fX6AgX98fHt8fn9+fn+Bf3x8fHx+f35+f4F/fHx8fH5/fn5/gX98fHx8fn9+fn+Bf3x8fHx+f35+f4F/fHx8fX9/fn5/gX9+fHx9f39+fn+Af35+fX1/f35+f4B/fn5+fn9/f39/gH9+fn5+f39/f3+Af35+fn5/f39/f4B/fn5+fn9/f39/gH9+fn5/f39/f3+Af35+fn9/f39/f4B/fn5+f39/f3+Af35+fn9/f39/f4B/');
+        audio.volume = 0.5;
+        audio.play().catch(() => {}); // Silently fail if autoplay blocked
+      } catch (e) {}
+      
+      // Show notification toast
+      toast.success(
+        `🟢 New WhatsApp Booking!\n${data.booking?.user?.name || 'Customer'} — ${data.booking?.service?.name || 'Service'}`,
+        { duration: 6000, icon: '📱' }
+      );
+      
+      // Auto-refresh bookings list
+      fetchBookings();
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Admin Socket disconnected');
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const fetchBookings = async () => {
     try {
@@ -59,12 +115,16 @@ const ManageBookings = () => {
   };
 
   const filtered = bookings.filter(b => {
+    // Source filter
+    if (sourceFilter !== 'all' && b.source !== sourceFilter) return false;
+    
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
       b.user?.name?.toLowerCase().includes(q) ||
       b.user?.email?.toLowerCase().includes(q) ||
-      b.service?.name?.toLowerCase().includes(q)
+      b.service?.name?.toLowerCase().includes(q) ||
+      b.externalBookingId?.toLowerCase().includes(q)
     );
   });
 
@@ -93,6 +153,11 @@ const ManageBookings = () => {
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </select>
+          <select className="admin-filter-select" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+            <option value="all">All Sources</option>
+            <option value="website">🌐 Website</option>
+            <option value="whatsapp">📱 WhatsApp</option>
+          </select>
         </div>
       </div>
 
@@ -102,6 +167,7 @@ const ManageBookings = () => {
             <tr>
               <th>Customer</th>
               <th>Service</th>
+              <th>Source</th>
               <th>Date</th>
               <th>Time</th>
               <th>Amount</th>
@@ -112,9 +178,9 @@ const ManageBookings = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
+              <tr><td colSpan="9" style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No bookings found</td></tr>
+              <tr><td colSpan="9" style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No bookings found</td></tr>
             ) : (
               filtered.map((b) => (
                 <tr key={b._id}>
@@ -123,6 +189,17 @@ const ManageBookings = () => {
                     <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{b.user?.phone}</div>
                   </td>
                   <td>{b.service?.name}</td>
+                  <td>
+                    {b.source === 'whatsapp' ? (
+                      <span className="badge badge-whatsapp" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: '0.78rem', borderRadius: '4px', background: '#dcfce7', color: '#16a34a', fontWeight: 600 }}>
+                        <BsWhatsapp size={12} /> WhatsApp
+                      </span>
+                    ) : (
+                      <span className="badge" style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '4px', background: '#e0f2fe', color: '#0284c7', fontWeight: 600 }}>
+                        🌐 Website
+                      </span>
+                    )}
+                  </td>
                   <td>{new Date(b.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td>
                   <td>{b.timeSlot}</td>
                   <td style={{ fontWeight: 600 }}>₹{b.totalAmount}</td>

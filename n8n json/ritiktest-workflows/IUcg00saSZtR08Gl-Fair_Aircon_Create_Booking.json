@@ -526,6 +526,38 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "={{ $env.FAIR_AIRCON_API_URL || \"https://fair-aircon.onrender.com\" }}/api/n8n/booking-sync",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{ $env.N8N_BOOKING_API_SECRET || \"fairaircon_n8n_secret_2026_xyz\" }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"booking_id\": \"{{ $('Validate Booking').item.json.booking_id }}\",\n  \"customer_name\": \"{{ $('Validate Booking').item.json.customer_name }}\",\n  \"phone\": \"{{ $('Validate Booking').item.json.phone }}\",\n  \"service\": \"{{ $('Validate Booking').item.json.service }}\",\n  \"date\": \"{{ $('Validate Booking').item.json.date }}\",\n  \"start_time\": \"{{ $('Validate Booking').item.json.start_time }}\",\n  \"end_time\": \"{{ $('Validate Booking').item.json.end_time }}\",\n  \"address\": \"{{ $('Validate Booking').item.json.address }}\",\n  \"city\": \"{{ $('Validate Booking').item.json.city }}\",\n  \"notes\": \"{{ $('Validate Booking').item.json.notes }}\",\n  \"source\": \"{{ $('Validate Booking').item.json.source }}\"\n}",
+        "options": {}
+      },
+      "id": "e89028bf-4a0b-4680-bc42-990e11894450",
+      "name": "Sync Booking to Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        416
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
@@ -1097,6 +1129,11 @@
         [
           {
             "node": "Upsert Customer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Sync Booking to Website",
             "type": "main",
             "index": 0
           }

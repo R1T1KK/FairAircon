@@ -36,6 +36,12 @@ const initSocket = (server) => {
   io.on('connection', (socket) => {
     console.log(`Socket Connected: ${socket.id} (User: ${socket.user.name})`);
 
+    // Auto-join admin room for admin users
+    if (socket.user.role === 'admin') {
+      socket.join('admin_dashboard');
+      console.log(`Admin ${socket.user.name} joined admin_dashboard room`);
+    }
+
     // Join a specific booking room
     socket.on('join_booking', (bookingId) => {
       socket.join(`booking_${bookingId}`);

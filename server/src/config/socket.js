@@ -1,6 +1,8 @@
 const socketio = require('socket.io');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
+const Booking = require('../models/Booking');
 
 let io;
 
@@ -30,11 +32,11 @@ const initSocket = (server) => {
   // Authentication Middleware for Sockets
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token;
+      const token = socket.handshake.auth?.token;
       if (!token) return next(new Error('Authentication error'));
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id);
+      const user = await User.findById(decoded.id).select('-password');
 
       if (!user) return next(new Error('User not found'));
 
@@ -54,19 +56,60 @@ const initSocket = (server) => {
       console.log(`Admin ${socket.user.name} joined admin_dashboard room`);
     }
 
-    // Join a specific booking room
-    socket.on('join_booking', (bookingId) => {
-      socket.join(`booking_${bookingId}`);
-      console.log(`User ${socket.user.name} joined room: booking_${bookingId}`);
+    // Join a specific booking room (with ownership / assignment check)
+    socket.on('join_booking', async (bookingId) => {
+      try {
+        if (!bookingId || !mongoose.Types.ObjectId.isValid(bookingId)) return;
+
+        const booking = await Booking.findById(bookingId).select('user technician');
+        if (!booking) return;
+
+        const isOwner = booking.user.toString() === socket.user._id.toString();
+        const isAdmin = socket.user.role === 'admin';
+        const isAssignedTech =
+          socket.user.role === 'technician' &&
+          booking.technician &&
+          booking.technician.toString() === socket.user._id.toString();
+
+        if (!isOwner && !isAdmin && !isAssignedTech) {
+          socket.emit('tracking_error', { message: 'Not authorized to track this booking' });
+          return;
+        }
+
+        socket.join(`booking_${bookingId}`);
+        console.log(`User ${socket.user.name} joined room: booking_${bookingId}`);
+      } catch (err) {
+        console.error('Socket join_booking Error:', err.message);
+      }
     });
 
     // Handle Technician location updates
     socket.on('update_location', async (data) => {
-      const { bookingId, lat, lng } = data;
-
       if (socket.user.role !== 'technician') return;
 
+      const { bookingId, lat, lng } = data || {};
+      if (
+        !bookingId ||
+        !mongoose.Types.ObjectId.isValid(bookingId) ||
+        typeof lat !== 'number' ||
+        typeof lng !== 'number' ||
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng)
+      ) {
+        return;
+      }
+
       try {
+        // Verify technician is assigned to this booking
+        const booking = await Booking.findById(bookingId).select('technician');
+        if (
+          !booking ||
+          !booking.technician ||
+          booking.technician.toString() !== socket.user._id.toString()
+        ) {
+          return;
+        }
+
         // Update technician's location in DB
         await User.findByIdAndUpdate(socket.user._id, {
           currentLocation: { lat, lng, updatedAt: Date.now() }
@@ -80,7 +123,7 @@ const initSocket = (server) => {
           timestamp: Date.now()
         });
       } catch (err) {
-        console.error('Socket Location Update Error:', err);
+        console.error('Socket Location Update Error:', err.message);
       }
     });
 

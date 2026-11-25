@@ -22,14 +22,35 @@ const TechnicianDashboard = () => {
   useEffect(() => {
     fetchJobs();
 
-    // Initialize Socket.io
-    const token = localStorage.getItem('token');
-    socketRef.current = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
-      auth: { token }
+    if (!localStorage.getItem('airfix_token')) return;
+    if (socketRef.current) return;
+
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+      auth: (cb) => cb({ token: localStorage.getItem('airfix_token') })
     });
+    socketRef.current = socket;
+
+    const handleConnectError = (err) => {
+      const isAuthError =
+        err?.message === 'Authentication error' ||
+        err?.message === 'User not found' ||
+        !localStorage.getItem('airfix_token');
+
+      if (isAuthError) {
+        socket.io.opts.reconnection = false;
+        socket.disconnect();
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+      }
+    };
+
+    socket.on('connect_error', handleConnectError);
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      socket.off('connect_error', handleConnectError);
+      socket.disconnect();
+      socketRef.current = null;
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
     };
   }, []);
@@ -45,11 +66,13 @@ const TechnicianDashboard = () => {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        socketRef.current.emit('update_location', {
-          bookingId: jobId,
-          lat: latitude,
-          lng: longitude
-        });
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('update_location', {
+            bookingId: jobId,
+            lat: latitude,
+            lng: longitude
+          });
+        }
       },
       (err) => {
         console.error('Location Error:', err);

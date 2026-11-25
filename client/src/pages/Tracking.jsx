@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { FiClock, FiMapPin, FiTruck, FiCheckCircle, FiUser, FiArrowLeft } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import './Tracking.css';
@@ -18,6 +19,8 @@ const statuses = [
 
 const Tracking = () => {
   const { bookingId } = useParams();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const [booking, setBooking] = useState(null);
   const [techLocation, setTechLocation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,25 +34,54 @@ const Tracking = () => {
   useEffect(() => {
     fetchBooking();
 
-    // Initialize Socket.io
-    const token = localStorage.getItem('token');
-    socketRef.current = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
-      auth: { token }
+    if (!localStorage.getItem('airfix_token')) return;
+    if (socketRef.current) return;
+
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+      auth: (cb) => cb({ token: localStorage.getItem('airfix_token') })
     });
+    socketRef.current = socket;
 
-    socketRef.current.emit('join_booking', bookingId);
+    const handleConnect = () => {
+      socket.emit('join_booking', bookingId);
+    };
 
-    socketRef.current.on('status_update', (data) => {
-      setBooking(prev => ({ ...prev, status: data.status, technician: data.technician }));
+    const handleStatusUpdate = (data) => {
+      setBooking(prev => (prev ? { ...prev, status: data.status, technician: data.technician } : prev));
       toast.success(`Booking status updated to ${data.status}`);
-    });
+    };
 
-    socketRef.current.on('location_update', (data) => {
+    const handleLocationUpdate = (data) => {
       setTechLocation({ lat: data.lat, lng: data.lng });
-    });
+    };
+
+    const handleConnectError = (err) => {
+      const isAuthError =
+        err?.message === 'Authentication error' ||
+        err?.message === 'User not found' ||
+        !localStorage.getItem('airfix_token');
+
+      if (isAuthError) {
+        socket.io.opts.reconnection = false;
+        socket.disconnect();
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+      }
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('status_update', handleStatusUpdate);
+    socket.on('location_update', handleLocationUpdate);
+    socket.on('connect_error', handleConnectError);
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      socket.off('connect', handleConnect);
+      socket.off('status_update', handleStatusUpdate);
+      socket.off('location_update', handleLocationUpdate);
+      socket.off('connect_error', handleConnectError);
+      socket.disconnect();
+      socketRef.current = null;
     };
   }, [bookingId]);
 

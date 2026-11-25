@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { FiClock, FiMapPin, FiTruck, FiCheckCircle, FiUser, FiArrowLeft } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -25,11 +26,9 @@ const Tracking = () => {
   const [techLocation, setTechLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const socketRef = useRef(null);
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
-  });
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
 
   useEffect(() => {
     fetchBooking();
@@ -84,6 +83,52 @@ const Tracking = () => {
       socketRef.current = null;
     };
   }, [bookingId]);
+
+  // Initialize & update free Leaflet + OpenStreetMap map when technician location arrives
+  useEffect(() => {
+    if (!techLocation || !mapContainerRef.current) return;
+
+    const coords = [techLocation.lat, techLocation.lng];
+
+    if (!mapInstanceRef.current) {
+      const map = L.map(mapContainerRef.current, {
+        center: coords,
+        zoom: 15,
+        zoomControl: true
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      const techIcon = L.divIcon({
+        className: 'tech-map-marker',
+        html: `<div style="background:#1e86e9;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-size:18px;">🚐</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      markerRef.current = L.marker(coords, { icon: techIcon })
+        .addTo(map)
+        .bindPopup('Technician Live Location');
+
+      mapInstanceRef.current = map;
+    } else {
+      markerRef.current?.setLatLng(coords);
+      mapInstanceRef.current.panTo(coords, { animate: true });
+    }
+  }, [techLocation]);
+
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, []);
 
   const fetchBooking = async () => {
     try {
@@ -140,40 +185,16 @@ const Tracking = () => {
                 </div>
               )}
 
-              {isLoaded && techLocation ? (
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={techLocation}
-                  zoom={15}
-                  options={{
-                    disableDefaultUI: true,
-                    zoomControl: true,
-                    styles: [
-                      { "featureType": "administrative", "elementType": "all", "stylers": [{ "visibility": "off" }] },
-                      { "featureType": "poi", "elementType": "all", "stylers": [{ "visibility": "simplified" }] },
-                      { "featureType": "road", "elementType": "labels", "stylers": [{ "visibility": "simplified" }] },
-                      { "featureType": "water", "elementType": "all", "stylers": [{ "visibility": "simplified" }] }
-                    ]
-                  }}
-                >
-                  <Marker 
-                    position={techLocation} 
-                    icon={{
-                      url: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', // Delivery truck/technician icon
-                      scaledSize: new window.google.maps.Size(40, 40)
-                    }}
-                  />
-                </GoogleMap>
+              {techLocation ? (
+                <div
+                  ref={mapContainerRef}
+                  style={{ width: '100%', height: '100%', minHeight: '360px', borderRadius: 'inherit' }}
+                />
               ) : (
                 <div className="map-placeholder">
                   <FiMapPin size={48} />
                   <h3>Map will be active when technician is on the way</h3>
                   <p>Current Status: {booking.status.toUpperCase()}</p>
-                  {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-                    <div style={{ marginTop: '1rem', color: '#f59e0b', fontSize: '0.8rem' }}>
-                      (Google Maps API key not found in environment)
-                    </div>
-                  )}
                 </div>
               )}
             </div>

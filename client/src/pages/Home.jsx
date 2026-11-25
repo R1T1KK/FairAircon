@@ -1,98 +1,199 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaSnowflake, FaWrench, FaTools, FaWind, FaBroom, FaBolt, FaStar, FaCheckCircle, FaArrowRight, FaQuoteLeft, FaShieldAlt } from 'react-icons/fa';
-import { FiPhoneCall, FiClock, FiMapPin, FiUsers } from 'react-icons/fi';
-import api from '../services/api';
+import {
+  FiTool,
+  FiSettings,
+  FiWind,
+  FiDroplet,
+  FiShield,
+  FiZap,
+  FiArrowRight,
+  FiPhoneCall,
+  FiClock,
+  FiMapPin,
+  FiCheckCircle
+} from 'react-icons/fi';
 import ReviewSection from '../components/reviews/ReviewSection';
 import './Home.css';
 
 const servicesList = [
-  { icon: <FaWrench />, title: 'AC Repair', desc: 'Expert diagnosis & repair for all brands and models', price: '₹399' },
-  { icon: <FaTools />, title: 'AC Installation', desc: 'Professional installation with piping & testing', price: '₹1,399' },
-  { icon: <FaWind />, title: 'Gas Refill', desc: 'Refrigerant recharge with leak detection', price: '₹3,500' },
-  { icon: <FaBroom />, title: 'Deep Cleaning', desc: 'Complete coil cleaning & sanitization', price: '₹650' },
-  { icon: <FaShieldAlt />, title: 'Annual Maintenance', desc: '2 wet and dry services quarterly', price: '₹1,500' },
-  { icon: <FaBolt />, title: 'Emergency Repair', desc: '2-hour response, 24/7 availability', price: '₹349' },
+  {
+    icon: <FiTool size={18} aria-hidden="true" />,
+    title: 'AC Repair',
+    desc: 'Diagnosis and repair for compressor, refrigerant leak, and electrical faults across all brands.',
+    price: '₹399',
+    duration: '90 min'
+  },
+  {
+    icon: <FiSettings size={18} aria-hidden="true" />,
+    title: 'AC Installation',
+    desc: 'Split and window AC mounting, copper piping, electrical connections, and pressure testing.',
+    price: '₹1,399',
+    duration: '180 min'
+  },
+  {
+    icon: <FiWind size={18} aria-hidden="true" />,
+    title: 'Gas Refill / Recharge',
+    desc: 'Complete refrigerant recharge (R22, R32, R410A) with leak detection and pressure check.',
+    price: '₹3,500',
+    duration: '60 min'
+  },
+  {
+    icon: <FiDroplet size={18} aria-hidden="true" />,
+    title: 'Deep Cleaning',
+    desc: 'Filter wash, coil jet cleaning, drain line flush, and sanitization for cleaner airflow.',
+    price: '₹650',
+    duration: '90 min'
+  },
+  {
+    icon: <FiShield size={18} aria-hidden="true" />,
+    title: 'Annual Maintenance (AMC)',
+    desc: 'Scheduled quarterly wet and dry servicing to keep cooling efficiency steady year-round.',
+    price: '₹1,500',
+    duration: '120 min'
+  },
+  {
+    icon: <FiZap size={18} aria-hidden="true" />,
+    title: 'Emergency Repair',
+    desc: 'Priority dispatch for urgent AC breakdowns with 2-hour response and 24/7 availability.',
+    price: '₹349',
+    duration: '60 min'
+  }
+];
+
+const highlights = [
+  {
+    icon: <FiShield size={18} aria-hidden="true" />,
+    value: '3 Months',
+    label: 'Warranty on repair services'
+  },
+  {
+    icon: <FiClock size={18} aria-hidden="true" />,
+    value: '2 Hours',
+    label: 'Emergency response target'
+  },
+  {
+    icon: <FiCheckCircle size={18} aria-hidden="true" />,
+    value: 'Upfront',
+    label: 'Clear pricing before work starts'
+  },
+  {
+    icon: <FiMapPin size={18} aria-hidden="true" />,
+    value: 'Mumbai',
+    label: 'Residential & commercial service'
+  }
+];
+
+const stepsList = [
+  {
+    num: '01',
+    title: 'Book online',
+    desc: 'Pick your AC service, select a date and time slot, and enter your Mumbai address.'
+  },
+  {
+    num: '02',
+    title: 'Technician arrives',
+    desc: 'A verified technician is assigned to your request with live tracking to your doorstep.'
+  },
+  {
+    num: '03',
+    title: 'Service completed',
+    desc: 'Your unit is tested and verified before handoff, backed by a 3-month service warranty.'
+  }
 ];
 
 const Home = () => {
-  const stats = [
-    { icon: <FiUsers />, value: '5,000+', label: 'Happy Customers' },
-    { icon: <FaWrench />, value: '12,000+', label: 'Services Completed' },
-    { icon: <FiMapPin />, value: '25+', label: 'Cities Covered' },
-    { icon: <FiClock />, value: '2 Hrs', label: 'Avg Response Time' },
-  ];
-
   return (
-    <div className="home-page">
+    <main className="home-page">
       {/* ======== HERO ======== */}
       <section className="hero">
-        <div className="hero-bg-elements">
-          <div className="hero-orb hero-orb-1"></div>
-          <div className="hero-orb hero-orb-2"></div>
-          <div className="hero-orb hero-orb-3"></div>
-        </div>
         <div className="container hero-content">
-          <div className="hero-text animate-fade-in-up">
-            <div className="hero-badge">
-              <FaSnowflake /> #1 AC Service Platform
+          <div className="hero-text">
+            <div className="hero-eyebrow">
+              <span className="status-dot" aria-hidden="true" />
+              <span>Mumbai HVAC &amp; AC Service</span>
             </div>
-            <h1>Keep Your <span className="hero-highlight">Cool</span> With Professional AC Services</h1>
+            <h1>Reliable AC service and repair across Mumbai</h1>
             <p className="hero-subtitle">
-              Expert technicians, genuine spare parts, and guaranteed satisfaction. Book your AC service in under 60 seconds.
+              Certified technicians, upfront pricing, and a 3-month service warranty. Book a time slot online and track your technician live.
             </p>
             <div className="hero-actions">
-              <Link to="/booking" className="btn-primary-lg">
-                Book Now <FaArrowRight />
+              <Link to="/booking" className="btn btn-primary btn-lg">
+                <span>Book a service</span>
+                <FiArrowRight size={16} aria-hidden="true" />
               </Link>
-              <a href="tel:+919829454487" className="btn-outline-lg">
-                <FiPhoneCall /> Call Us
+              <a href="tel:+919829454487" className="btn btn-secondary btn-lg">
+                <FiPhoneCall size={16} aria-hidden="true" />
+                <span className="tabular-nums">+91 9829454487</span>
               </a>
             </div>
-            <div className="hero-trust">
-              <div className="hero-trust-stars">
-                {[...Array(5)].map((_, i) => <FaStar key={i} />)}
-              </div>
-              <span>4.9/5 from 2,000+ reviews</span>
-            </div>
           </div>
-          <div className="hero-visual animate-fade-in-up">
-            <div className="hero-card-stack">
-              <div className="hero-feature-card hfc-1">
-                <FaCheckCircle className="hfc-icon" />
+
+          <div className="hero-visual" aria-label="Service booking preview">
+            <div className="card dispatch-preview">
+              <div className="dispatch-header">
                 <div>
-                  <strong>Same Day Service</strong>
-                  <span>Book & get service today</span>
+                  <span className="dispatch-label">Live service dispatch</span>
+                  <h2 className="dispatch-title">Deep Cleaning</h2>
+                </div>
+                <span className="badge badge-in-progress">
+                  <span className="status-dot" aria-hidden="true" />
+                  On the way
+                </span>
+              </div>
+
+              <div className="dispatch-meta-row">
+                <div className="dispatch-meta-item">
+                  <span className="dispatch-meta-key">Starting rate</span>
+                  <strong className="dispatch-meta-val tabular-nums">₹650</strong>
+                </div>
+                <div className="dispatch-meta-item">
+                  <span className="dispatch-meta-key">Duration</span>
+                  <strong className="dispatch-meta-val tabular-nums">90 min</strong>
+                </div>
+                <div className="dispatch-meta-item">
+                  <span className="dispatch-meta-key">Warranty</span>
+                  <strong className="dispatch-meta-val tabular-nums">3 months</strong>
                 </div>
               </div>
-              <div className="hero-feature-card hfc-2">
-                <FaShieldAlt className="hfc-icon" />
-                <div>
-                  <strong>3 Months Warranty</strong>
-                  <span>On all repair services</span>
+
+              <div className="dispatch-checklist">
+                <div className="dispatch-check-item">
+                  <FiCheckCircle size={16} aria-hidden="true" />
+                  <span>Filter deep wash &amp; coil jet cleaning</span>
+                </div>
+                <div className="dispatch-check-item">
+                  <FiCheckCircle size={16} aria-hidden="true" />
+                  <span>Drain line flush &amp; sanitization</span>
+                </div>
+                <div className="dispatch-check-item">
+                  <FiMapPin size={16} aria-hidden="true" />
+                  <span>Live technician GPS tracking included</span>
                 </div>
               </div>
-              <div className="hero-feature-card hfc-3">
-                <FaStar className="hfc-icon" />
-                <div>
-                  <strong>Certified Experts</strong>
-                  <span>Trained & verified techs</span>
-                </div>
+
+              <div className="dispatch-footer">
+                <span className="dispatch-area">Mumbai, Maharashtra</span>
+                <Link to="/services" className="dispatch-link">
+                  <span>View all services</span>
+                  <FiArrowRight size={14} aria-hidden="true" />
+                </Link>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ======== STATS ======== */}
-      <section className="stats-section">
+      {/* ======== HIGHLIGHTS ======== */}
+      <section className="highlights-section" aria-label="Service guarantees">
         <div className="container">
-          <div className="stats-grid stagger-children">
-            {stats.map((stat, i) => (
-              <div key={i} className="stat-card glass-card animate-fade-in-up">
-                <div className="stat-icon">{stat.icon}</div>
-                <div className="stat-value">{stat.value}</div>
-                <div className="stat-label">{stat.label}</div>
+          <div className="highlights-grid">
+            {highlights.map((item, i) => (
+              <div key={i} className="card highlight-card">
+                <div className="highlight-icon">{item.icon}</div>
+                <div>
+                  <div className="highlight-value tabular-nums">{item.value}</div>
+                  <div className="highlight-label">{item.label}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -102,19 +203,33 @@ const Home = () => {
       {/* ======== SERVICES ======== */}
       <section className="section services-section" id="services">
         <div className="container">
-          <h2 className="section-title">Our Services</h2>
-          <p className="section-subtitle">Professional AC solutions tailored to your needs, delivered by certified technicians</p>
-          <div className="services-grid stagger-children">
+          <div className="section-header">
+            <h2 className="section-title">AC services &amp; upfront pricing</h2>
+            <p className="section-subtitle">
+              Residential and commercial cooling services handled by trained technicians with genuine spare parts.
+            </p>
+          </div>
+
+          <div className="services-grid">
             {servicesList.map((service, i) => (
-              <div key={i} className="service-card glass-card animate-fade-in-up">
-                <div className="service-icon-wrap">{service.icon}</div>
+              <article key={i} className="card service-card">
+                <div className="service-card-top">
+                  <div className="service-icon-wrap">{service.icon}</div>
+                  <span className="service-duration tabular-nums">{service.duration}</span>
+                </div>
                 <h3>{service.title}</h3>
                 <p>{service.desc}</p>
                 <div className="service-card-footer">
-                  <span className="service-price">From {service.price}</span>
-                  <Link to="/booking" className="service-book-btn">Book <FaArrowRight /></Link>
+                  <div className="service-price-wrap">
+                    <span className="service-price-label">From</span>
+                    <span className="service-price tabular-nums">{service.price}</span>
+                  </div>
+                  <Link to="/booking" className="btn btn-secondary btn-sm">
+                    <span>Book</span>
+                    <FiArrowRight size={14} aria-hidden="true" />
+                  </Link>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </div>
@@ -123,30 +238,21 @@ const Home = () => {
       {/* ======== HOW IT WORKS ======== */}
       <section className="section how-it-works">
         <div className="container">
-          <h2 className="section-title">How It Works</h2>
-          <p className="section-subtitle">Get your AC serviced in 3 simple steps</p>
+          <div className="section-header">
+            <h2 className="section-title">How it works</h2>
+            <p className="section-subtitle">
+              From booking your slot to verified completion in three clear steps.
+            </p>
+          </div>
+
           <div className="steps-grid">
-            <div className="step-card glass-card animate-fade-in-up">
-              <div className="step-number">1</div>
-              <h3>Book Online</h3>
-              <p>Select your service, choose a convenient date & time, and enter your address</p>
-            </div>
-            <div className="step-connector">
-              <FaArrowRight />
-            </div>
-            <div className="step-card glass-card animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              <div className="step-number">2</div>
-              <h3>Technician Arrives</h3>
-              <p>A certified technician arrives at your doorstep with all required tools & parts</p>
-            </div>
-            <div className="step-connector">
-              <FaArrowRight />
-            </div>
-            <div className="step-card glass-card animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-              <div className="step-number">3</div>
-              <h3>Service Done!</h3>
-              <p>Your AC is fixed & running perfectly. Pay after the service is completed</p>
-            </div>
+            {stepsList.map((step) => (
+              <div key={step.num} className="card step-card">
+                <span className="step-number tabular-nums">{step.num}</span>
+                <h3>{step.title}</h3>
+                <p>{step.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -155,28 +261,29 @@ const Home = () => {
       <ReviewSection />
 
       {/* ======== CTA ======== */}
-      <section className="cta-section">
+      <section className="section cta-section">
         <div className="container">
           <div className="cta-card">
-            <div className="cta-bg-snowflakes">
-              {[...Array(6)].map((_, i) => (
-                <FaSnowflake key={i} className={`cta-sf cta-sf-${i + 1}`} />
-              ))}
+            <div className="cta-copy">
+              <h2>Need an AC technician today?</h2>
+              <p>
+                Schedule your visit online in a few steps or call our Mumbai dispatch line directly.
+              </p>
             </div>
-            <h2>Ready to Get Your AC Fixed?</h2>
-            <p>Book your service in under 60 seconds. Expert technicians at your doorstep.</p>
             <div className="cta-actions">
-              <Link to="/booking" className="btn-primary-lg btn-white">
-                Book a Service <FaArrowRight />
+              <Link to="/booking" className="btn btn-accent btn-lg">
+                <span>Book a service</span>
+                <FiArrowRight size={16} aria-hidden="true" />
               </Link>
-              <a href="tel:+919829454487" className="btn-outline-white">
-                <FiPhoneCall /> +91 9829454487
+              <a href="tel:+919829454487" className="btn btn-secondary btn-lg cta-call-btn">
+                <FiPhoneCall size={16} aria-hidden="true" />
+                <span className="tabular-nums">+91 9829454487</span>
               </a>
             </div>
           </div>
         </div>
       </section>
-    </div>
+    </main>
   );
 };
 

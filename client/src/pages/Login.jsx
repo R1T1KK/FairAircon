@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaSnowflake } from 'react-icons/fa';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiSmartphone } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Auth.css';
@@ -20,8 +19,8 @@ const Login = () => {
     setLoading(true);
     try {
       const user = await login(email, password);
-      toast.success(`Welcome back, ${user.name}!`);
-      
+      toast.success(`Welcome back, ${user.name}`);
+
       if (user.role === 'admin') navigate('/admin');
       else if (user.role === 'technician') navigate('/technician');
       else navigate('/');
@@ -33,59 +32,77 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-bg-orbs">
-        <div className="auth-orb auth-orb-1"></div>
-        <div className="auth-orb auth-orb-2"></div>
-      </div>
-      <div className="auth-card animate-fade-in-up">
-        {/* Navigation Tabs */}
+    <main className="auth-page">
+      <div className="auth-card">
         <div className="auth-mode-tabs">
-          <span className="auth-mode-tab active">
-            Password Login
-          </span>
+          <span className="auth-mode-tab active">Password Login</span>
           <Link to="/otp-login" className="auth-mode-tab">
             OTP Login
           </Link>
         </div>
 
         <div className="auth-header">
-          <FaSnowflake className="auth-logo-icon" />
-          <h1>Welcome Back</h1>
-          <p>Log in to your Fair Aircon account</p>
+          <h1>Sign in to Fair Aircon</h1>
+          <p>Access your bookings, receipts, and live technician tracking</p>
         </div>
 
         <Link to="/otp-login" className="otp-switch-banner">
-          <FiSmartphone className="switch-icon" />
-          <span>Prefer passwordless? <strong>Login with Mobile OTP</strong></span>
+          <FiSmartphone className="switch-icon" size={16} aria-hidden="true" />
+          <span>
+            Prefer passwordless? <strong>Log in with Mobile OTP</strong>
+          </span>
         </Link>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
-            <FiMail className="input-icon" />
-            <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <FiMail className="input-icon" aria-hidden="true" />
+            <input
+              type="email"
+              aria-label="Email address"
+              autoComplete="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
           <div className="input-group">
-            <FiLock className="input-icon" />
-            <input type={showPass ? 'text' : 'password'} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <button type="button" className="input-eye" onClick={() => setShowPass(!showPass)}>
-              {showPass ? <FiEyeOff /> : <FiEye />}
+            <FiLock className="input-icon" aria-hidden="true" />
+            <input
+              type={showPass ? 'text' : 'password'}
+              aria-label="Password"
+              autoComplete="current-password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="input-eye"
+              onClick={() => setShowPass(!showPass)}
+              aria-label={showPass ? 'Hide password' : 'Show password'}
+            >
+              {showPass ? <FiEyeOff size={16} aria-hidden="true" /> : <FiEye size={16} aria-hidden="true" />}
             </button>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: '16px' }}>
-            <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: 'var(--primary-600)', fontWeight: 500 }}>
-              Forgot Password?
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <Link
+              to="/forgot-password"
+              style={{ fontSize: '0.875rem', color: 'var(--cobalt)', fontWeight: 500 }}
+            >
+              Forgot password?
             </Link>
           </div>
           <button type="submit" className="auth-submit-btn" disabled={loading}>
-            {loading ? 'Logging in...' : 'Log In with Password'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
         <p className="auth-footer-text">
-          Don't have an account? <Link to="/signup">Sign Up</Link>
+          Don&apos;t have an account? <Link to="/signup">Sign up</Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 

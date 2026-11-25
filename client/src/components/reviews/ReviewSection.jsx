@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { FaStar, FaQuoteLeft, FaUserCircle } from 'react-icons/fa';
+import { FiStar, FiUser, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './ReviewSection.css';
 
 const INITIAL_VISIBLE = 6;
+const MIN_REVIEWS_FOR_AVG = 10;
 
 const ReviewSection = () => {
   const { user } = useAuth();
@@ -20,13 +21,8 @@ const ReviewSection = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
-      setLoading(true);
       const [reviewsRes, servicesRes] = await Promise.all([
         api.get('/reviews'),
         api.get('/services')
@@ -39,6 +35,25 @@ const ReviewSection = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([api.get('/reviews'), api.get('/services')])
+      .then(([reviewsRes, servicesRes]) => {
+        if (!active) return;
+        setReviews(reviewsRes.data.reviews || []);
+        setServices(servicesRes.data.services || []);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch reviews data', err);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
@@ -58,7 +73,7 @@ const ReviewSection = () => {
     try {
       const res = await api.post('/reviews', formData);
       if (res.data.success) {
-        toast.success('Review submitted successfully!');
+        toast.success('Review submitted');
         setFormData({ serviceId: '', rating: 5, comment: '' });
         setShowForm(false);
         fetchData();
@@ -69,129 +84,178 @@ const ReviewSection = () => {
   };
 
   const getAverageRating = () => {
-    if (!reviews.length) return 0;
+    if (!reviews.length) return '0.0';
     const total = reviews.reduce((acc, rev) => acc + rev.rating, 0);
     return (total / reviews.length).toFixed(1);
   };
 
   const visibleReviews = reviews.slice(0, visibleCount);
   const hasMore = visibleCount < reviews.length;
+  const showAverageSummary = reviews.length >= MIN_REVIEWS_FOR_AVG;
 
   return (
-    <section className="review-section">
+    <section className="section review-section" aria-labelledby="reviews-heading">
       <div className="container">
         <div className="review-header">
           <div>
-            <h2 className="section-title">Customer Reviews</h2>
-            <p className="section-subtitle">Real feedback from our valued customers</p>
+            <h2 id="reviews-heading" className="section-title">Customer reviews</h2>
+            <p className="section-subtitle">Feedback from Fair Aircon service bookings</p>
           </div>
-          <div className="review-stats">
-            <div className="avg-rating">
-              <span className="avg-score">{getAverageRating()}</span>
-              <FaStar className="avg-star" />
-            </div>
-            <span className="total-reviews">Based on {reviews.length} reviews</span>
+
+          <div className="review-header-actions">
+            {showAverageSummary && (
+              <div className="card review-stats">
+                <div className="avg-rating tabular-nums">
+                  <span className="avg-score">{getAverageRating()}</span>
+                  <FiStar size={20} className="avg-star" aria-hidden="true" />
+                </div>
+                <span className="total-reviews tabular-nums">
+                  Based on {reviews.length} reviews
+                </span>
+              </div>
+            )}
+
+            {!showForm && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  if (user) {
+                    setShowForm(true);
+                  } else {
+                    toast.error('Please log in to write a review');
+                  }
+                }}
+              >
+                Write a review
+              </button>
+            )}
           </div>
         </div>
 
-        {showForm ? (
-          <div className="review-form-container animate-fade-in-up">
-            <h3>Write a Review</h3>
+        {showForm && (
+          <div className="card review-form-container">
+            <h3>Write a review</h3>
             <form onSubmit={handleReviewSubmit} className="review-form">
-              <div className="form-group">
-                <label>Select Service</label>
-                <select 
-                  value={formData.serviceId} 
-                  onChange={(e) => setFormData({...formData, serviceId: e.target.value})}
+              <div className="review-form-group">
+                <label htmlFor="review-service-select">Select service</label>
+                <select
+                  id="review-service-select"
+                  value={formData.serviceId}
+                  onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
                   required
                 >
-                  <option value="">-- Choose a Service --</option>
-                  {services.map(s => (
-                    <option key={s._id} value={s._id}>{s.name}</option>
+                  <option value="">Choose a service</option>
+                  {services.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Rating</label>
-                <div className="star-rating-input">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <FaStar 
-                      key={star} 
-                      className={`input-star ${star <= formData.rating ? 'active' : ''}`}
-                      onClick={() => setFormData({...formData, rating: star})}
-                    />
+              <div className="review-form-group">
+                <span className="review-label">Rating</span>
+                <div className="star-rating-input" role="radiogroup" aria-label="Rating">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className={`input-star-btn ${star <= formData.rating ? 'active' : ''}`}
+                      onClick={() => setFormData({ ...formData, rating: star })}
+                      aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                      aria-pressed={star <= formData.rating}
+                    >
+                      <FiStar size={20} aria-hidden="true" />
+                    </button>
                   ))}
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Your Feedback</label>
-                <textarea 
-                  placeholder="Share details of your experience..."
+              <div className="review-form-group">
+                <label htmlFor="review-comment-input">Your feedback</label>
+                <textarea
+                  id="review-comment-input"
+                  placeholder="Share details of your experience"
                   value={formData.comment}
-                  onChange={(e) => setFormData({...formData, comment: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
                   rows={4}
                   required
                 />
               </div>
 
-              <div className="form-actions">
-                <button type="submit" className="btn-primary-lg">Submit Review</button>
-                <button type="button" className="btn-outline-lg" onClick={() => setShowForm(false)}>Cancel</button>
+              <div className="review-form-actions">
+                <button type="submit" className="btn btn-primary">
+                  Submit review
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowForm(false)}
+                >
+                  Cancel
+                </button>
               </div>
             </form>
-          </div>
-        ) : (
-          <div className="write-review-cta">
-            <button 
-              className="btn-primary-lg" 
-              onClick={() => {
-                if (user) {
-                  setShowForm(true);
-                } else {
-                  toast.error('Please login to write a review');
-                }
-              }}
-            >
-              Write a Review
-            </button>
           </div>
         )}
 
         {loading ? (
-          <div className="reviews-loading">Loading reviews...</div>
+          <div className="reviews-grid" aria-label="Loading reviews">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="card review-card review-skeleton" aria-hidden="true">
+                <div className="skeleton-line short" />
+                <div className="skeleton-line" />
+                <div className="skeleton-line medium" />
+              </div>
+            ))}
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="card reviews-empty">
+            <p>No reviews yet. Be the first to share feedback after your service.</p>
+          </div>
         ) : (
           <>
-            <div className="reviews-grid stagger-children mt-4">
-              {visibleReviews.map((review) => (
-                <div key={review._id} className="review-card animate-fade-in-up">
-                  <FaQuoteLeft className="review-quote-icon" />
-                  <p className="review-text">{review.comment}</p>
-                  <div className="review-stars-static">
-                    {[...Array(5)].map((_, i) => (
-                      <FaStar key={i} className={i < review.rating ? 'star-active' : 'star-inactive'} />
-                    ))}
-                  </div>
-                  {review.service && (
-                    <div className="review-service-tag">
-                      {review.service.name}
+            <div className="reviews-grid">
+              {visibleReviews.map((review) => {
+                const isVerifiedBooking = Boolean(review.booking);
+                return (
+                  <article key={review._id} className="card review-card">
+                    <div className="review-card-top">
+                      <div className="review-stars-static" aria-label={`${review.rating} out of 5 stars`}>
+                        {[...Array(5)].map((_, i) => (
+                          <FiStar
+                            key={i}
+                            size={15}
+                            className={i < review.rating ? 'star-active' : 'star-inactive'}
+                            aria-hidden="true"
+                          />
+                        ))}
+                      </div>
+                      {review.service?.name && (
+                        <span className="review-service-tag">{review.service.name}</span>
+                      )}
                     </div>
-                  )}
-                  <div className="review-author">
-                    <div className="review-avatar">
-                      <FaUserCircle size={40} color="#94a3b8" />
+
+                    <p className="review-text">{review.comment}</p>
+
+                    <div className="review-author">
+                      <div className="review-avatar" aria-hidden="true">
+                        <FiUser size={16} />
+                      </div>
+                      <div className="review-author-info">
+                        <strong>{review.user?.name || 'Customer'}</strong>
+                        {isVerifiedBooking && (
+                          <span className="review-verified-badge">
+                            <FiCheckCircle size={12} aria-hidden="true" />
+                            <span>Verified booking</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="review-author-info">
-                      <strong>{review.user?.name || 'Customer'}</strong>
-                      <span>Verified User</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {reviews.length === 0 && !loading && (
-                <p style={{ textAlign: 'center', width: '100%', color: '#64748b' }}>No reviews yet. Be the first to review!</p>
-              )}
+                  </article>
+                );
+              })}
             </div>
 
             {reviews.length > INITIAL_VISIBLE && (
@@ -199,19 +263,23 @@ const ReviewSection = () => {
                 {hasMore ? (
                   <button
                     id="reviews-see-more-btn"
-                    className="see-more-btn"
-                    onClick={() => setVisibleCount(prev => prev + 6)}
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setVisibleCount((prev) => prev + 6)}
                   >
-                    See More Reviews
-                    <span className="see-more-count">+{reviews.length - visibleCount} more</span>
+                    <span>Show more reviews</span>
+                    <span className="see-more-count tabular-nums">
+                      +{reviews.length - visibleCount}
+                    </span>
                   </button>
                 ) : (
                   <button
                     id="reviews-see-less-btn"
-                    className="see-more-btn see-less-btn"
+                    type="button"
+                    className="btn btn-secondary"
                     onClick={() => setVisibleCount(INITIAL_VISIBLE)}
                   >
-                    See Less
+                    Show fewer
                   </button>
                 )}
               </div>

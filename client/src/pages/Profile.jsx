@@ -1,54 +1,100 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2, FiX, FiCheckCircle, FiChevronRight, FiCamera, FiDownload } from 'react-icons/fi';
-import { FaStar, FaRegStar } from 'react-icons/fa';
+import {
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiCalendar,
+  FiClock,
+  FiEdit2,
+  FiCheckCircle,
+  FiChevronRight,
+  FiCamera,
+  FiDownload,
+  FiStar,
+  FiAlertCircle,
+  FiArrowRight
+} from 'react-icons/fi';
 import toast from 'react-hot-toast';
-
 import './Profile.css';
+
+const ACTIVE_STATUSES = ['pending', 'confirmed', 'assigned', 'on-the-way'];
+
+const STATUS_LABELS = {
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  assigned: 'Technician assigned',
+  'on-the-way': 'On the way',
+  'in-progress': 'In progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled'
+};
+
+const getStatusBadgeClass = (status) => {
+  if (status === 'completed') return 'badge-completed';
+  if (status === 'cancelled') return 'badge-cancelled';
+  if (status === 'pending') return 'badge-pending';
+  return 'badge-in-progress';
+};
 
 const Profile = () => {
   const { user, updateProfile, updateAvatar } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [bookingsError, setBookingsError] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [uploading, setUploading] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [reviewingId, setReviewingId] = useState(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
-  const [form, setForm] = useState({
-    name: '', phone: '',
-    address: { street: '', city: '', state: '', pincode: '' }
-  });
+  const [form, setForm] = useState(() => ({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    address: user?.address || { street: '', city: '', state: '', pincode: '' }
+  }));
 
-  useEffect(() => {
-    if (user) {
-      setForm({
-        name: user.name || '',
-        phone: user.phone || '',
-        address: user.address || { street: '', city: '', state: '', pincode: '' }
-      });
-      fetchBookings();
-    }
-  }, [user]);
-
-  const fetchBookings = async () => {
+  const loadBookings = useCallback(async () => {
+    setBookingsError('');
     try {
       const res = await api.get('/bookings/my');
-      setBookings(res.data.bookings);
-    } catch (err) {
-      console.error(err);
+      setBookings(res.data.bookings || []);
+    } catch {
+      setBookingsError('Could not load your bookings. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let active = true;
+    api
+      .get('/bookings/my')
+      .then((res) => {
+        if (active) setBookings(res.data.bookings || []);
+      })
+      .catch(() => {
+        if (active) setBookingsError('Could not load your bookings. Please try again.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (limit 2MB)
     if (file.size > 2 * 1024 * 1024) {
       return toast.error('File size too large (Max 2MB)');
     }
@@ -59,286 +105,511 @@ const Profile = () => {
     try {
       setUploading(true);
       await updateAvatar(formData);
-      toast.success('Avatar updated!');
-    } catch (err) {
+      toast.success('Profile photo updated');
+    } catch {
       toast.error('Upload failed');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSavingProfile(true);
     try {
       await updateProfile(form);
-      toast.success('Profile updated!');
+      toast.success('Profile updated');
       setEditing(false);
-    } catch (err) {
+    } catch {
       toast.error('Update failed');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
   const handleReviewSubmit = async (bookingId) => {
     if (!reviewData.comment.trim()) return toast.error('Please add a comment');
+    setSubmittingReview(true);
     try {
-      await api.post('/reviews', { bookingId, rating: reviewData.rating, comment: reviewData.comment });
-      toast.success('Thank you for your review!');
+      await api.post('/reviews', {
+        bookingId,
+        rating: reviewData.rating,
+        comment: reviewData.comment
+      });
+      toast.success('Thank you for your review');
+      setBookings((prev) =>
+        prev.map((b) => (b._id === bookingId ? { ...b, isReviewed: true } : b))
+      );
       setReviewingId(null);
       setReviewData({ rating: 5, comment: '' });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
   const downloadReceipt = async (bookingId) => {
     try {
       toast.loading('Generating receipt...');
-      const response = await api.get(`/bookings/${bookingId}/receipt`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const response = await api.get(`/bookings/${bookingId}/receipt`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: 'application/pdf' })
+      );
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `FairAircon-Receipt-${bookingId.slice(-8).toUpperCase()}.pdf`);
+      link.setAttribute(
+        'download',
+        `FairAircon-Receipt-${bookingId.slice(-8).toUpperCase()}.pdf`
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
       toast.dismiss();
-      toast.success('Receipt downloaded!');
-    } catch (err) {
+      toast.success('Receipt downloaded');
+    } catch {
       toast.dismiss();
       toast.error('Could not download receipt');
     }
   };
 
+  const upcomingBooking = bookings.find((b) => ACTIVE_STATUSES.includes(b.status));
+
+  const filteredBookings = bookings.filter((b) => {
+    if (statusFilter === 'active') return ACTIVE_STATUSES.includes(b.status);
+    if (statusFilter === 'completed') return b.status === 'completed';
+    if (statusFilter === 'cancelled') return b.status === 'cancelled';
+    return true;
+  });
+
   return (
-    <div className="profile-page">
-      {/* Background Elements */}
-      <div className="mesh-gradient">
-        <div className="blob blob-1"></div>
-        <div className="blob blob-2"></div>
-        <div className="blob blob-3"></div>
-      </div>
+    <main className="profile-page">
+      <section className="page-header-band">
+        <div className="container">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to="/">Home</Link>
+            <FiChevronRight size={14} aria-hidden="true" />
+            <span aria-current="page">My account</span>
+          </nav>
+          <h1>Customer dashboard</h1>
+          <p>Manage your contact details, track active visits, and download receipts.</p>
+        </div>
+      </section>
 
       <div className="container profile-container">
         <div className="profile-grid">
-          
-          {/* Side Profile Card */}
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="glass-card profile-pillar"
-          >
-            <div className="profile-avatar-wrapper group">
+          {/* Left: Profile Card */}
+          <aside className="card profile-pillar" aria-label="Account profile">
+            <div className="profile-avatar-wrapper">
               <div className="avatar-main">
                 {user?.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="avatar-img" />
+                  <img
+                    src={user.avatar}
+                    alt={user.name || 'User avatar'}
+                    className="avatar-img"
+                    width="88"
+                    height="88"
+                  />
                 ) : (
-                  user?.name?.[0]?.toUpperCase()
+                  <span>{user?.name?.[0]?.toUpperCase() || <FiUser size={28} />}</span>
                 )}
-                
-                {/* Upload Overlay */}
-                <label className="avatar-upload-overlay">
-                  <input type="file" hidden accept="image/*" onChange={handleAvatarChange} disabled={uploading} />
-                  {uploading ? (
-                    <div className="spinner-sm"></div>
-                  ) : (
-                    <FiCamera size={24} />
-                  )}
+
+                <label className="avatar-upload-overlay" aria-label="Upload profile photo">
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    disabled={uploading}
+                  />
+                  <FiCamera size={16} aria-hidden="true" />
                 </label>
               </div>
-              <div className="avatar-ring"></div>
             </div>
 
-            <AnimatePresence mode="wait">
-              {editing ? (
-                <motion.div 
-                  key="edit"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="profile-edit-form"
-                >
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full Name" />
-                  <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone" />
-                  <input value={form.address.city} onChange={(e) => setForm({ ...form, address: { ...form.address, city: e.target.value } })} placeholder="City" />
-                  <div className="profile-edit-actions">
-                    <button onClick={handleSave} className="btn-save">Save changes</button>
-                    <button onClick={() => setEditing(false)} className="btn-cancel-edit">Cancel</button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  key="view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="profile-view-content"
-                >
-                  <h2>{user?.name}</h2>
-                  <p className="profile-subtitle">Premium Member</p>
-                  
-                  <div className="profile-info">
-                    <div className="profile-info-item"><FiMail /> {user?.email}</div>
-                    <div className="profile-info-item"><FiPhone /> {user?.phone}</div>
-                    {user?.address?.city && (
-                      <div className="profile-info-item"><FiMapPin /> {user.address.city}</div>
-                    )}
-                  </div>
-
-                  <button onClick={() => setEditing(true)} className="profile-edit-btn">
-                    <FiEdit2 /> Edit Details
+            {editing ? (
+              <form onSubmit={handleSave} className="profile-edit-form">
+                <div className="profile-field">
+                  <label htmlFor="prof-name">Full name</label>
+                  <input
+                    id="prof-name"
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="profile-field">
+                  <label htmlFor="prof-phone">Phone (10 digits)</label>
+                  <input
+                    id="prof-phone"
+                    type="tel"
+                    inputMode="numeric"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="profile-field">
+                  <label htmlFor="prof-city">City</label>
+                  <input
+                    id="prof-city"
+                    type="text"
+                    value={form.address?.city || ''}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: { ...form.address, city: e.target.value }
+                      })
+                    }
+                  />
+                </div>
+                <div className="profile-edit-actions">
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    disabled={savingProfile}
+                  >
+                    {savingProfile ? 'Saving...' : 'Save changes'}
                   </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="profile-view-content">
+                <h2>{user?.name}</h2>
+                <p className="profile-role-meta">Customer account</p>
 
-          {/* Main Content Area */}
-          <div className="main-content">
-            
+                <div className="profile-info">
+                  <div className="profile-info-item">
+                    <FiMail size={15} aria-hidden="true" />
+                    <span>{user?.email}</span>
+                  </div>
+                  <div className="profile-info-item">
+                    <FiPhone size={15} aria-hidden="true" />
+                    <span className="tabular-nums">{user?.phone || 'Not added'}</span>
+                  </div>
+                  {user?.address?.city && (
+                    <div className="profile-info-item">
+                      <FiMapPin size={15} aria-hidden="true" />
+                      <span>{user.address.city}</span>
+                    </div>
+                  )}
+                </div>
 
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm({
+                      name: user?.name || '',
+                      phone: user?.phone || '',
+                      address: user?.address || { street: '', city: '', state: '', pincode: '' }
+                    });
+                    setEditing(true);
+                  }}
+                  className="btn btn-secondary profile-edit-btn"
+                >
+                  <FiEdit2 size={15} aria-hidden="true" />
+                  <span>Edit details</span>
+                </button>
+              </div>
+            )}
+          </aside>
 
-            {/* Bookings Section */}
-            <div className="bookings-section">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <FiCalendar className="text-sky-500" /> Booking History
-                </h2>
-                <span className="text-sm font-medium text-slate-400">{bookings.length} total services</span>
+          {/* Right: Upcoming Booking + History */}
+          <div className="profile-main-content">
+            {/* Upcoming / Active Summary */}
+            {!loading && upcomingBooking && (
+              <section className="card upcoming-summary-card" aria-label="Upcoming service">
+                <div className="upcoming-top">
+                  <div>
+                    <span className="upcoming-eyebrow">Active booking</span>
+                    <h2>{upcomingBooking.service?.name}</h2>
+                  </div>
+                  <span className={`badge ${getStatusBadgeClass(upcomingBooking.status)}`}>
+                    <span className="status-dot" aria-hidden="true" />
+                    <span>{STATUS_LABELS[upcomingBooking.status] || upcomingBooking.status}</span>
+                  </span>
+                </div>
+
+                <div className="upcoming-meta">
+                  <span>
+                    <FiCalendar size={14} aria-hidden="true" />
+                    <span className="tabular-nums">
+                      {new Date(upcomingBooking.scheduledDate).toLocaleDateString('en-IN')}
+                    </span>
+                  </span>
+                  <span>
+                    <FiClock size={14} aria-hidden="true" />
+                    <span className="tabular-nums">{upcomingBooking.timeSlot}</span>
+                  </span>
+                  {upcomingBooking.technician?.name && (
+                    <span>
+                      <FiUser size={14} aria-hidden="true" />
+                      <span>Tech: {upcomingBooking.technician.name}</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="upcoming-actions">
+                  <Link
+                    to={`/tracking/${upcomingBooking._id}`}
+                    className="btn btn-primary btn-sm"
+                  >
+                    <span>Track live</span>
+                    <FiArrowRight size={14} aria-hidden="true" />
+                  </Link>
+                  <Link to="/booking" className="btn btn-secondary btn-sm">
+                    Book another service
+                  </Link>
+                </div>
+              </section>
+            )}
+
+            {/* Booking History */}
+            <section className="bookings-section" aria-labelledby="history-heading">
+              <div className="bookings-header">
+                <div>
+                  <h2 id="history-heading">Booking history</h2>
+                  <p className="bookings-count tabular-nums">
+                    {bookings.length} total booking{bookings.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+
+                <div className="history-filters" role="tablist" aria-label="Filter bookings">
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'active', label: 'Active' },
+                    { key: 'completed', label: 'Completed' },
+                    { key: 'cancelled', label: 'Cancelled' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={statusFilter === tab.key}
+                      className={`history-filter-btn ${statusFilter === tab.key ? 'active' : ''}`}
+                      onClick={() => setStatusFilter(tab.key)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {loading ? (
-                <div className="flex justify-center p-20">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
+                <div className="bookings-list" aria-label="Loading bookings">
+                  {[1, 2].map((n) => (
+                    <div key={n} className="card booking-item-card booking-skel" aria-hidden="true">
+                      <div className="skel-line title" />
+                      <div className="skel-line" />
+                      <div className="skel-line short" />
+                    </div>
+                  ))}
                 </div>
-              ) : bookings.length === 0 ? (
-                <div className="glass-card p-20 text-center">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                     <FiCalendar scale={2} color="#cbd5e1" />
-                  </div>
-                  <p className="text-slate-500">No bookings yet. Ready for your first clean?</p>
-                  <Link to="/services" className="text-sky-500 font-semibold mt-2 inline-block">Explore Services</Link>
+              ) : bookingsError ? (
+                <div className="card bookings-state-card" role="alert">
+                  <FiAlertCircle size={22} aria-hidden="true" />
+                  <p>{bookingsError}</p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setLoading(true);
+                      loadBookings();
+                    }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div className="card bookings-state-card">
+                  <FiCalendar size={24} aria-hidden="true" />
+                  <p>
+                    {bookings.length === 0
+                      ? 'No bookings yet. Schedule your first AC service.'
+                      : 'No bookings match this filter.'}
+                  </p>
+                  <Link to="/booking" className="btn btn-primary btn-sm">
+                    Book a service
+                  </Link>
                 </div>
               ) : (
                 <div className="bookings-list">
-                  {bookings.map((b, i) => (
-                    <motion.div 
-                      key={b._id} 
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="glass-card booking-item-glass"
-                    >
+                  {filteredBookings.map((b) => (
+                    <article key={b._id} className="card booking-item-card">
                       <div className="bi-header">
                         <div className="bi-title">
-                          <h3>{b.service?.name}</h3>
-                          <span className="bi-id">REF: {b._id.slice(-6).toUpperCase()}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                           <span className={`badge ${b.paymentStatus === 'paid' ? 'badge-confirmed' : 'badge-pending'}`}>
-                            {b.paymentStatus.toUpperCase()}
+                          <h3>{b.service?.name || 'AC Service'}</h3>
+                          <span className="bi-id tabular-nums">
+                            REF: {b._id.slice(-6).toUpperCase()}
                           </span>
-                          <span className={`badge badge-${b.status}`}>
-                            {b.status.replace('-', ' ')}
+                        </div>
+                        <div className="bi-badges">
+                          <span
+                            className={`badge ${
+                              b.paymentStatus === 'paid' ? 'badge-completed' : 'badge-pending'
+                            }`}
+                          >
+                            Payment: {b.paymentStatus}
+                          </span>
+                          <span className={`badge ${getStatusBadgeClass(b.status)}`}>
+                            <span className="status-dot" aria-hidden="true" />
+                            <span>{STATUS_LABELS[b.status] || b.status}</span>
                           </span>
                         </div>
                       </div>
 
                       <div className="bi-meta">
-                        <div className="meta-item"><FiCalendar /> {new Date(b.scheduledDate).toLocaleDateString()}</div>
-                        <div className="meta-item">🕐 {b.timeSlot}</div>
-                        <div className="meta-item font-bold text-slate-800">₹{b.totalAmount}</div>
+                        <div className="meta-item tabular-nums">
+                          <FiCalendar size={14} aria-hidden="true" />
+                          <span>{new Date(b.scheduledDate).toLocaleDateString('en-IN')}</span>
+                        </div>
+                        <div className="meta-item tabular-nums">
+                          <FiClock size={14} aria-hidden="true" />
+                          <span>{b.timeSlot}</span>
+                        </div>
+                        <div className="meta-item bi-amount tabular-nums">
+                          ₹{b.totalAmount?.toLocaleString('en-IN')}
+                        </div>
                       </div>
 
+                      {b.address?.street && (
+                        <p className="bi-address">
+                          <FiMapPin size={14} aria-hidden="true" />
+                          <span>
+                            {b.address.street}, {b.address.city} - {b.address.pincode}
+                          </span>
+                        </p>
+                      )}
+
                       {b.technician && (
-                        <div className="bg-sky-50/50 p-4 rounded-xl border border-sky-100/50 flex align-center gap-3 mb-4">
-                           <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                             {b.technician.name[0]}
-                           </div>
-                           <div className="text-sm">
-                             <span className="text-slate-500 block text-xs">Technician Assigned</span>
-                             <span className="font-semibold text-slate-700">{b.technician.name}</span>
-                           </div>
+                        <div className="bi-tech-box">
+                          <div className="bi-tech-avatar" aria-hidden="true">
+                            {b.technician.name?.[0]?.toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="bi-tech-label">Assigned technician</span>
+                            <strong className="bi-tech-name">{b.technician.name}</strong>
+                          </div>
+                          {b.technician.phone && (
+                            <a
+                              href={`tel:${b.technician.phone}`}
+                              className="btn btn-secondary btn-sm bi-tech-call"
+                            >
+                              <FiPhone size={14} aria-hidden="true" />
+                              <span>Call</span>
+                            </a>
+                          )}
                         </div>
                       )}
 
-                      <div className="flex gap-3 mt-4">
-                        {['pending', 'confirmed', 'assigned', 'on-the-way'].includes(b.status) && (
-                          <Link to={`/tracking/${b._id}`} className="flex-1 bg-white/50 border border-slate-200 py-2 rounded-xl text-center text-sm font-semibold hover:bg-white transition-all flex items-center justify-center gap-2">
-                             Track Progress <FiChevronRight />
+                      <div className="bi-actions">
+                        {ACTIVE_STATUSES.includes(b.status) && (
+                          <Link
+                            to={`/tracking/${b._id}`}
+                            className="btn btn-secondary btn-sm"
+                          >
+                            <span>Track progress</span>
+                            <FiChevronRight size={14} aria-hidden="true" />
                           </Link>
                         )}
                         {b.status === 'completed' && !b.isReviewed && (
-                          <button 
-                            onClick={() => setReviewingId(reviewingId === b._id ? null : b._id)} 
-                            className="flex-1 bg-white/50 border border-slate-200 py-2 rounded-xl text-center text-sm font-semibold hover:bg-white transition-all flex items-center justify-center gap-2"
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setReviewingId(reviewingId === b._id ? null : b._id)
+                            }
+                            className="btn btn-secondary btn-sm"
                           >
-                             {reviewingId === b._id ? 'Cancel' : 'Rate Service'} <FaStar className="text-amber-400" />
+                            <FiStar size={14} aria-hidden="true" />
+                            <span>{reviewingId === b._id ? 'Cancel' : 'Rate service'}</span>
                           </button>
                         )}
                         {b.status === 'completed' && (
                           <button
+                            type="button"
                             id={`download-receipt-${b._id}`}
                             onClick={() => downloadReceipt(b._id)}
-                            style={{ flex: '1', background: 'linear-gradient(135deg, #1e86e9, #0ea5e9)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(30,134,233,0.25)' }}
+                            className="btn btn-primary btn-sm"
                           >
-                            <FiDownload size={14} /> Receipt
+                            <FiDownload size={14} aria-hidden="true" />
+                            <span>Receipt</span>
                           </button>
                         )}
                         {b.paymentStatus === 'pending' && b.status !== 'cancelled' && (
-                          <button onClick={() => toast.success("Redirecting to checkout...")} className="flex-1 bg-sky-500 text-white py-2 rounded-xl text-sm font-bold shadow-lg shadow-sky-200">
-                             Finalize Payment
+                          <button
+                            type="button"
+                            onClick={() => toast.success('Redirecting to checkout...')}
+                            className="btn btn-accent btn-sm"
+                          >
+                            Finalize payment
                           </button>
                         )}
                       </div>
 
-                      <AnimatePresence>
-                        {reviewingId === b._id && (
-                          <motion.div 
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="mt-4 pt-4 border-t border-slate-100 overflow-hidden"
+                      {reviewingId === b._id && (
+                        <div className="bi-review-drawer">
+                          <div
+                            className="bi-star-row"
+                            role="radiogroup"
+                            aria-label="Rate this service"
                           >
-                            <div className="flex gap-2 mb-3">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button 
-                                  key={star}
-                                  onClick={() => setReviewData({ ...reviewData, rating: star })}
-                                  className="text-2xl transition-transform active:scale-95"
-                                >
-                                  {star <= reviewData.rating ? (
-                                    <FaStar className="text-amber-400" />
-                                  ) : (
-                                    <FaRegStar className="text-slate-300" />
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                            <textarea
-                              className="w-100 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sky-100 transition-all outline-none"
-                              placeholder="Describe your service experience..."
-                              value={reviewData.comment}
-                              onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
-                              rows={3}
-                            />
-                            <button 
-                              onClick={() => handleReviewSubmit(b._id)}
-                              className="mt-2 w-100 bg-slate-900 text-white py-2 rounded-xl text-sm font-bold hover:bg-black transition-all"
-                            >
-                              Submit Review
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                className={`bi-star-btn ${
+                                  star <= reviewData.rating ? 'active' : ''
+                                }`}
+                                onClick={() =>
+                                  setReviewData({ ...reviewData, rating: star })
+                                }
+                                aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                                aria-pressed={star <= reviewData.rating}
+                              >
+                                <FiStar size={18} aria-hidden="true" />
+                              </button>
+                            ))}
+                          </div>
+                          <textarea
+                            className="bi-review-textarea"
+                            placeholder="Describe your service experience"
+                            value={reviewData.comment}
+                            onChange={(e) =>
+                              setReviewData({ ...reviewData, comment: e.target.value })
+                            }
+                            rows={3}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleReviewSubmit(b._id)}
+                            className="btn btn-primary btn-sm"
+                            disabled={submittingReview}
+                          >
+                            <FiCheckCircle size={14} aria-hidden="true" />
+                            <span>{submittingReview ? 'Submitting...' : 'Submit review'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </article>
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           </div>
-
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

@@ -664,4 +664,9 @@
     width: 100%;
     min-height: 44px;
   }
+
+  .admin-mobile-card .table-action-btn,
+  .admin-mobile-card .admin-role-select {
+    min-height: 44px;
+  }
 }

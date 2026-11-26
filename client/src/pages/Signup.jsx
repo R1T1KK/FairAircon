@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaSnowflake } from 'react-icons/fa';
 import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiSmartphone } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Auth.css';
@@ -59,21 +58,16 @@ const Signup = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-bg-orbs">
-        <div className="auth-orb auth-orb-1"></div>
-        <div className="auth-orb auth-orb-2"></div>
-      </div>
-      <div className="auth-card animate-fade-in-up">
+    <main className="auth-page">
+      <div className="auth-card">
         <div className="auth-header">
-          <FaSnowflake className="auth-logo-icon" />
           <h1>{step === 1 ? 'Create Account' : 'Verify Email'}</h1>
           <p>{step === 1 ? 'Join Fair Aircon for the best AC services' : 'Enter the 6-digit OTP sent to your email'}</p>
         </div>
 
         {step === 1 && (
           <Link to="/otp-login" className="otp-switch-banner">
-            <FiSmartphone className="switch-icon" />
+            <FiSmartphone className="switch-icon" aria-hidden="true" />
             <span>Fast track: <strong>Sign up / Login with Mobile OTP</strong></span>
           </Link>
         )}
@@ -81,27 +75,27 @@ const Signup = () => {
         {step === 1 ? (
           <form onSubmit={handleRegister} className="auth-form">
             <div className="input-group">
-              <FiUser className="input-icon" />
-              <input type="text" name="name" placeholder="Full Name" value={form.name} onChange={handleChange} required />
+              <FiUser className="input-icon" aria-hidden="true" />
+              <input type="text" name="name" autoComplete="name" aria-label="Full Name" placeholder="Full Name" value={form.name} onChange={handleChange} required />
             </div>
             <div className="input-group">
-              <FiMail className="input-icon" />
-              <input type="email" name="email" placeholder="Email address" value={form.email} onChange={handleChange} required />
+              <FiMail className="input-icon" aria-hidden="true" />
+              <input type="email" name="email" autoComplete="email" aria-label="Email address" placeholder="Email address" value={form.email} onChange={handleChange} required />
             </div>
             <div className="input-group">
-              <FiPhone className="input-icon" />
-              <input type="tel" name="phone" placeholder="Phone (10 digits)" value={form.phone} onChange={handleChange} required />
+              <FiPhone className="input-icon" aria-hidden="true" />
+              <input type="tel" name="phone" inputMode="numeric" autoComplete="tel" maxLength={10} aria-label="Phone (10 digits)" placeholder="Phone (10 digits)" value={form.phone} onChange={handleChange} required />
             </div>
             <div className="input-group">
-              <FiLock className="input-icon" />
-              <input type={showPass ? 'text' : 'password'} name="password" placeholder="Password" value={form.password} onChange={handleChange} required />
-              <button type="button" className="input-eye" onClick={() => setShowPass(!showPass)}>
-                {showPass ? <FiEyeOff /> : <FiEye />}
+              <FiLock className="input-icon" aria-hidden="true" />
+              <input type={showPass ? 'text' : 'password'} name="password" autoComplete="new-password" aria-label="Password" placeholder="Password" value={form.password} onChange={handleChange} required />
+              <button type="button" className="input-eye" onClick={() => setShowPass(!showPass)} aria-label={showPass ? 'Hide password' : 'Show password'}>
+                {showPass ? <FiEyeOff aria-hidden="true" /> : <FiEye aria-hidden="true" />}
               </button>
             </div>
             <div className="input-group">
-              <FiLock className="input-icon" />
-              <input type="password" name="confirmPassword" placeholder="Confirm Password" value={form.confirmPassword} onChange={handleChange} required />
+              <FiLock className="input-icon" aria-hidden="true" />
+              <input type="password" name="confirmPassword" autoComplete="new-password" aria-label="Confirm Password" placeholder="Confirm Password" value={form.confirmPassword} onChange={handleChange} required />
             </div>
             <button type="submit" className="auth-submit-btn" disabled={loading}>
               {loading ? 'Sending OTP...' : 'Next'}
@@ -112,6 +106,9 @@ const Signup = () => {
             <div className="input-group">
               <input 
                 type="text" 
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                aria-label="Enter 6-digit OTP"
                 placeholder="Enter 6-digit OTP" 
                 value={otp} 
                 onChange={(e) => setOtp(e.target.value)} 
@@ -123,7 +120,7 @@ const Signup = () => {
             <button type="submit" className="auth-submit-btn" disabled={loading}>
               {loading ? 'Verifying...' : 'Verify & Setup Account'}
             </button>
-            <button type="button" onClick={() => setStep(1)} className="auth-submit-btn" style={{ background: 'transparent', border: '1px solid var(--gray-300)', color: 'var(--gray-700)', marginTop: '8px' }}>
+            <button type="button" onClick={() => setStep(1)} className="btn btn-secondary" style={{ width: '100%' }}>
               Back
             </button>
           </form>
@@ -135,7 +132,7 @@ const Signup = () => {
           </p>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

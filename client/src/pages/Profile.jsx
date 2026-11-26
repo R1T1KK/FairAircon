@@ -581,7 +581,11 @@ const Profile = () => {
                               </button>
                             ))}
                           </div>
+                          <label htmlFor={`review-text-${b._id}`} className="sr-only">
+                            Describe your service experience
+                          </label>
                           <textarea
+                            id={`review-text-${b._id}`}
                             className="bi-review-textarea"
                             placeholder="Describe your service experience"
                             value={reviewData.comment}

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaSnowflake } from 'react-icons/fa';
 import { FiMail } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Auth.css';
@@ -28,33 +27,30 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-bg-orbs">
-        <div className="auth-orb auth-orb-1"></div>
-        <div className="auth-orb auth-orb-2"></div>
-      </div>
-      <div className="auth-card animate-fade-in-up">
+    <main className="auth-page">
+      <div className="auth-card">
         <div className="auth-header">
-          <FaSnowflake className="auth-logo-icon" />
           <h1>Forgot Password</h1>
           <p>{sent ? 'Check your email inbox' : 'Enter your email to receive a reset link'}</p>
         </div>
         
         {sent ? (
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <p style={{ color: 'var(--gray-600)', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-body)', marginBottom: '24px' }}>
               We've sent a secure password reset link to <strong>{email}</strong>. Please check your inbox and spam folder.
             </p>
-            <Link to="/login" className="auth-submit-btn" style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+            <Link to="/login" className="btn btn-primary" style={{ width: '100%' }}>
               Back to Login
             </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="input-group">
-              <FiMail className="input-icon" />
+              <FiMail className="input-icon" aria-hidden="true" />
               <input 
-                type="email" 
+                type="email"
+                autoComplete="email"
+                aria-label="Email address"
                 placeholder="Email address" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
@@ -73,7 +69,7 @@ const ForgotPassword = () => {
           </p>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

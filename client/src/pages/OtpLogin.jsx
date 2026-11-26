@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaSnowflake } from 'react-icons/fa';
 import { FiPhone, FiUser, FiArrowLeft, FiCheckCircle, FiShield, FiRefreshCw } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import OtpInput from '../components/auth/OtpInput';
@@ -124,13 +123,8 @@ const OtpLogin = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-bg-orbs">
-        <div className="auth-orb auth-orb-1"></div>
-        <div className="auth-orb auth-orb-2"></div>
-      </div>
-
-      <div className="auth-card animate-fade-in-up">
+    <main className="auth-page">
+      <div className="auth-card">
         {/* Navigation Tabs */}
         <div className="auth-mode-tabs">
           <Link to="/login" className="auth-mode-tab">
@@ -142,7 +136,6 @@ const OtpLogin = () => {
         </div>
 
         <div className="auth-header">
-          <FaSnowflake className="auth-logo-icon" />
           <h1>{step === 1 ? 'Instant Mobile Login' : 'Enter Verification Code'}</h1>
           <p>
             {step === 1
@@ -165,6 +158,8 @@ const OtpLogin = () => {
               <input
                 type="tel"
                 inputMode="numeric"
+                autoComplete="tel"
+                aria-label="10-digit mobile number"
                 placeholder="Enter 10-digit mobile number"
                 value={phone}
                 onChange={handlePhoneChange}
@@ -176,9 +171,11 @@ const OtpLogin = () => {
             </div>
 
             <div className="input-group">
-              <FiUser className="input-icon" />
+              <FiUser className="input-icon" aria-hidden="true" />
               <input
                 type="text"
+                autoComplete="name"
+                aria-label="Full name (optional for new users)"
                 placeholder="Your Full Name (Optional for new users)"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -281,7 +278,7 @@ const OtpLogin = () => {
           <Link to="/login">Sign in with Password</Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 

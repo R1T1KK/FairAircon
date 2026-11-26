@@ -581,6 +581,7 @@ const TechnicianDashboard = () => {
                                   </button>
                                   <button
                                     type="button"
+                                    autoFocus
                                     disabled={isUpdating}
                                     onClick={() => setConfirmCompleteId(null)}
                                     className="btn btn-secondary tech-field-btn"

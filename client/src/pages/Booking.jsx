@@ -115,12 +115,23 @@ const Booking = () => {
     }
     if (step === 2 && (!form.scheduledDate || !form.timeSlot)) {
       setStepError('Please select both a date and a time slot.');
+      if (!form.scheduledDate) {
+        document.getElementById('booking-date')?.focus();
+      }
       return toast.error('Please select date and time');
     }
     if (step === 3) {
       const { street, city, state, pincode } = form.address;
       if (!street || !city || !state || !pincode) {
         setStepError('Please fill in all required address fields.');
+        const firstMissingId = !street
+          ? 'addr-street'
+          : !city
+          ? 'addr-city'
+          : !state
+          ? 'addr-state'
+          : 'addr-pincode';
+        document.getElementById(firstMissingId)?.focus();
         return toast.error('Please fill all address fields');
       }
     }
@@ -301,7 +312,7 @@ const Booking = () => {
                   <div className="datetime-section">
                     <label htmlFor="booking-date" className="field-label">
                       <FiCalendar size={16} aria-hidden="true" />
-                      <span>Preferred date</span>
+                      <span>Preferred date *</span>
                     </label>
                     <input
                       id="booking-date"
@@ -356,7 +367,7 @@ const Booking = () => {
                 <div className="address-form">
                   <div className="input-group">
                     <label htmlFor="addr-street" className="field-label">
-                      Street / House No / Apartment
+                      Street / House No / Apartment *
                     </label>
                     <input
                       id="addr-street"
@@ -373,7 +384,7 @@ const Booking = () => {
 
                   <div className="address-row">
                     <div className="input-group">
-                      <label htmlFor="addr-city" className="field-label">City</label>
+                      <label htmlFor="addr-city" className="field-label">City *</label>
                       <input
                         id="addr-city"
                         type="text"
@@ -387,7 +398,7 @@ const Booking = () => {
                       />
                     </div>
                     <div className="input-group">
-                      <label htmlFor="addr-state" className="field-label">State</label>
+                      <label htmlFor="addr-state" className="field-label">State *</label>
                       <input
                         id="addr-state"
                         type="text"
@@ -403,12 +414,13 @@ const Booking = () => {
                   </div>
 
                   <div className="input-group">
-                    <label htmlFor="addr-pincode" className="field-label">Pincode</label>
+                    <label htmlFor="addr-pincode" className="field-label">Pincode (6 digits) *</label>
                     <input
                       id="addr-pincode"
                       type="text"
                       name="pincode"
                       inputMode="numeric"
+                      maxLength={6}
                       autoComplete="postal-code"
                       placeholder="400053"
                       value={form.address.pincode}

@@ -297,6 +297,7 @@ const ManageUsers = () => {
             <div className="admin-modal-actions">
               <button
                 type="button"
+                autoFocus
                 className="btn-cancel-edit"
                 onClick={() => setRoleConfirm(null)}
               >

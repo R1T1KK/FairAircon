@@ -445,6 +445,7 @@ const ManageBookings = () => {
               </h2>
               <button
                 type="button"
+                autoFocus
                 onClick={() => setSelectedBooking(null)}
                 className="btn btn-ghost btn-sm"
                 aria-label="Close modal"
@@ -535,6 +536,7 @@ const ManageBookings = () => {
             <div className="admin-modal-actions">
               <button
                 type="button"
+                autoFocus
                 className="btn-cancel-edit"
                 onClick={() => setCancelConfirm(null)}
               >

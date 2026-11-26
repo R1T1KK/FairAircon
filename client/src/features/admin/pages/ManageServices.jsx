@@ -331,6 +331,7 @@ const ManageServices = () => {
                 <label htmlFor="svc-name">Service Name *</label>
                 <input
                   id="svc-name"
+                  autoFocus
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. AC Repair"
@@ -445,6 +446,7 @@ const ManageServices = () => {
             <div className="admin-modal-actions">
               <button
                 type="button"
+                autoFocus
                 className="btn-cancel-edit"
                 disabled={deleting}
                 onClick={() => setDeleteTarget(null)}

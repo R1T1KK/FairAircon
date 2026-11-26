@@ -1,5 +1,6 @@
 .tracking-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: transparent;
   padding-bottom: var(--space-16);
 }
@@ -109,7 +110,8 @@
 .map-overlay {
   position: absolute;
   top: var(--space-3);
-  left: var(--space-3);
+  right: var(--space-3);
+  left: auto;
   z-index: 500;
   pointer-events: none;
 }

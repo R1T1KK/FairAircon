@@ -245,6 +245,7 @@ const Home = () => {
                   alt="Split air conditioner indoor unit serviced by Fair Aircon"
                   width="520"
                   height="340"
+                  decoding="async"
                   className="hero-photo"
                 />
               </div>

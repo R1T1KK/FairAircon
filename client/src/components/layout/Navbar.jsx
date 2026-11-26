@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FiMenu, FiX, FiUser, FiLogOut, FiGrid } from 'react-icons/fi';
@@ -25,6 +25,9 @@ const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const toggleBtnRef = useRef(null);
+  const menuRef = useRef(null);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -33,9 +36,36 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
+    if (isOpen) {
+      wasOpenRef.current = true;
+      const firstFocusable = menuRef.current?.querySelector('a, button');
+      firstFocusable?.focus();
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      toggleBtnRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        return;
+      }
+      if (e.key === 'Tab' && menuRef.current) {
+        const focusables = menuRef.current.querySelectorAll('a, button');
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -58,6 +88,7 @@ const Navbar = () => {
         </Link>
 
         <div
+          ref={menuRef}
           id="primary-nav-menu"
           className={`navbar-links ${isOpen ? 'open' : ''}`}
         >
@@ -107,6 +138,7 @@ const Navbar = () => {
         </div>
 
         <button
+          ref={toggleBtnRef}
           type="button"
           className="navbar-toggle"
           onClick={() => setIsOpen(!isOpen)}

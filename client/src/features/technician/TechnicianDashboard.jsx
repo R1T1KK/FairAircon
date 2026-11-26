@@ -372,7 +372,7 @@ const TechnicianDashboard = () => {
 
           <div className="tech-topbar-meta">
             <span className="tech-updated-text tabular-nums">
-              Updated {lastUpdated.toLocaleTimeString('en-IN')}
+              Updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </span>
             <button
               type="button"

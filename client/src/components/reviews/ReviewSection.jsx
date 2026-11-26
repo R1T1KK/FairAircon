@@ -156,7 +156,7 @@ const ReviewSection = () => {
 
               <div className="review-form-group">
                 <span className="review-label">Rating</span>
-                <div className="star-rating-input" role="radiogroup" aria-label="Rating">
+                <div className="star-rating-input" role="group" aria-label="Rating">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}

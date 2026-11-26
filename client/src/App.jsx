@@ -22,6 +22,7 @@ import TechnicianDashboard from './features/technician/TechnicianDashboard';
 import Tracking from './pages/Tracking';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
+import NotFound from './pages/NotFound';
 import './App.css';
 
 function App() {
@@ -71,6 +72,7 @@ function App() {
                 <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/tracking/:bookingId" element={<ProtectedRoute><Tracking /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
               <Footer />
             </>

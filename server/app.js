@@ -18,6 +18,9 @@ const n8nRoutes = require('./src/routes/n8n.routes');
 
 const app = express();
 
+// Trust first proxy (Railway/Render) for accurate rate-limiter IP fallback
+app.set('trust proxy', 1);
+
 // Middleware
 const allowedOrigins = [
   'http://localhost:5173',

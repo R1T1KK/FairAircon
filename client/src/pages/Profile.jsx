@@ -626,7 +626,7 @@ const Profile = () => {
                             <span>Receipt</span>
                           </button>
                         )}
-                        {b.paymentStatus === 'pending' && b.status !== 'cancelled' && (
+                        {b.paymentStatus === 'pending' && b.status === 'completed' && (
                           <button
                             type="button"
                             disabled={payingId === b._id}
@@ -647,7 +647,7 @@ const Profile = () => {
                         >
                           <FiAlertCircle size={16} aria-hidden="true" />
                           <span style={{ flex: 1 }}>{paymentError.message}</span>
-                          {b.paymentStatus === 'pending' && b.status !== 'cancelled' && (
+                          {b.paymentStatus === 'pending' && b.status === 'completed' && (
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"

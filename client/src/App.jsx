@@ -68,8 +68,7 @@ function App() {
           <Route path="*" element={
             <>
               <Navbar />
-              <Suspense fallback={<RouteFallback />}>
-        <Routes>
+              <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/login" element={<Login />} />

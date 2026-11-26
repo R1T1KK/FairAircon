@@ -51,6 +51,8 @@ const Profile = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [reviewingId, setReviewingId] = useState(null);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [payingId, setPayingId] = useState(null);
+  const [paymentError, setPaymentError] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
   const [form, setForm] = useState(() => ({
     name: user?.name || '',
@@ -173,6 +175,84 @@ const Profile = () => {
     } catch {
       toast.dismiss();
       toast.error('Could not download receipt');
+    }
+  };
+
+  const handlePayment = async (booking) => {
+    if (payingId) return;
+    setPaymentError(null);
+
+    if (typeof window === 'undefined' || !window.Razorpay) {
+      const msg = 'Payment checkout failed to load. Please refresh the page and try again.';
+      setPaymentError({ bookingId: booking._id, message: msg });
+      return toast.error(msg);
+    }
+
+    setPayingId(booking._id);
+    try {
+      const { data } = await api.post('/payments/create-order', {
+        bookingId: booking._id
+      });
+
+      const options = {
+        key: data.key,
+        amount: data.order.amount,
+        currency: data.order.currency || 'INR',
+        name: 'Fair Aircon',
+        description: booking.service?.name || 'AC Service',
+        order_id: data.order.id,
+        prefill: {
+          name: data.user?.name || user?.name || '',
+          email: data.user?.email || user?.email || '',
+          contact: data.user?.phone || user?.phone || ''
+        },
+        theme: { color: '#2563eb' },
+        modal: {
+          ondismiss: () => {
+            setPayingId(null);
+          }
+        },
+        handler: async (response) => {
+          try {
+            await api.post('/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              bookingId: booking._id
+            });
+            await loadBookings();
+            toast.success('Payment verified successfully');
+          } catch (verifyErr) {
+            const msg =
+              'Payment verification failed. If money was deducted, do not pay again; contact us.';
+            setPaymentError({
+              bookingId: booking._id,
+              message: verifyErr.response?.data?.message
+                ? `${msg} (${verifyErr.response.data.message})`
+                : msg
+            });
+            toast.error(msg);
+          } finally {
+            setPayingId(null);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (resp) => {
+        const msg =
+          resp?.error?.description || 'Payment failed. Please try again.';
+        setPaymentError({ bookingId: booking._id, message: msg });
+        toast.error(msg);
+        setPayingId(null);
+      });
+      rzp.open();
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || 'Could not initiate payment. Please try again.';
+      setPaymentError({ bookingId: booking._id, message: msg });
+      toast.error(msg);
+      setPayingId(null);
     }
   };
 
@@ -549,13 +629,36 @@ const Profile = () => {
                         {b.paymentStatus === 'pending' && b.status !== 'cancelled' && (
                           <button
                             type="button"
-                            onClick={() => toast.success('Redirecting to checkout...')}
-                            className="btn btn-accent btn-sm"
+                            disabled={payingId === b._id}
+                            onClick={() => handlePayment(b)}
+                            className={`btn btn-accent btn-sm ${payingId === b._id ? 'is-loading' : ''}`}
                           >
-                            Finalize payment
+                            {payingId === b._id ? 'Processing...' : 'Finalize payment'}
                           </button>
                         )}
                       </div>
+
+                      {paymentError?.bookingId === b._id && (
+                        <div
+                          className="booking-inline-alert"
+                          role="alert"
+                          aria-live="polite"
+                          style={{ marginTop: 12, marginBottom: 0 }}
+                        >
+                          <FiAlertCircle size={16} aria-hidden="true" />
+                          <span style={{ flex: 1 }}>{paymentError.message}</span>
+                          {b.paymentStatus === 'pending' && b.status !== 'cancelled' && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handlePayment(b)}
+                              disabled={payingId === b._id}
+                            >
+                              Retry
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {reviewingId === b._id && (
                         <div className="bi-review-drawer">

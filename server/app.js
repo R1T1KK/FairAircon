@@ -12,6 +12,7 @@ const bookingRoutes = require('./src/routes/booking.routes');
 const reviewRoutes = require('./src/routes/review.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const paymentRoutes = require('./src/routes/payment.routes');
+const { handleWebhook } = require('./src/controllers/payment.controller');
 const technicianRoutes = require('./src/routes/technician.routes');
 const n8nRoutes = require('./src/routes/n8n.routes');
 
@@ -54,6 +55,8 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(morgan('dev'));
+// Raw body required for Razorpay webhook signature verification (before express.json)
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handleWebhook);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

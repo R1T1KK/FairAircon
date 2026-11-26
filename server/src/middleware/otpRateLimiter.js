@@ -70,5 +70,33 @@ const otpRateLimiter = (req, res, next) => {
   next();
 };
 
-module.exports = { otpRateLimiter };
+const paymentIpRequests = new Map();
+
+// Rate limiter for payment endpoints (20 requests / 15 min per IP)
+const paymentRateLimiter = (req, res, next) => {
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
+    return next();
+  }
+
+  const now = Date.now();
+  const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+  const windowMs = 15 * 60 * 1000;
+  const entry = paymentIpRequests.get(ip);
+
+  if (!entry || now - entry.startTime > windowMs) {
+    paymentIpRequests.set(ip, { count: 1, startTime: now });
+  } else {
+    if (entry.count >= 20) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many payment requests. Please wait a few minutes and try again.'
+      });
+    }
+    entry.count += 1;
+  }
+
+  next();
+};
+
+module.exports = { otpRateLimiter, paymentRateLimiter };
 

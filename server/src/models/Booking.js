@@ -52,6 +52,15 @@ const bookingSchema = new mongoose.Schema({
   razorpayPaymentId: {
     type: String
   },
+  razorpaySignature: {
+    type: String
+  },
+  paidAt: {
+    type: Date
+  },
+  paidAmount: {
+    type: Number
+  },
   notes: {
     type: String,
     default: ''

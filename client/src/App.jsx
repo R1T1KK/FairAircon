@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
@@ -13,17 +14,24 @@ import ResetPassword from './pages/ResetPassword';
 import ServicesPage from './pages/ServicesPage';
 import Booking from './pages/Booking';
 import Profile from './pages/Profile';
-import AdminLayout from './features/admin/AdminLayout';
-import DashboardHome from './features/admin/pages/DashboardHome';
-import ManageBookings from './features/admin/pages/ManageBookings';
-import ManageServices from './features/admin/pages/ManageServices';
-import ManageUsers from './features/admin/pages/ManageUsers';
-import TechnicianDashboard from './features/technician/TechnicianDashboard';
-import Tracking from './pages/Tracking';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
 import './App.css';
+
+const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
+const DashboardHome = lazy(() => import('./features/admin/pages/DashboardHome'));
+const ManageBookings = lazy(() => import('./features/admin/pages/ManageBookings'));
+const ManageServices = lazy(() => import('./features/admin/pages/ManageServices'));
+const ManageUsers = lazy(() => import('./features/admin/pages/ManageUsers'));
+const TechnicianDashboard = lazy(() => import('./features/technician/TechnicianDashboard'));
+const Tracking = lazy(() => import('./pages/Tracking'));
+
+const RouteFallback = () => (
+  <div className="page-loader" role="status" aria-live="polite">
+    Loading...
+  </div>
+);
 
 function App() {
   return (
@@ -43,6 +51,7 @@ function App() {
             }
           }}
         />
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           {/* Admin Routes - No Navbar/Footer */}
           <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
@@ -59,7 +68,8 @@ function App() {
           <Route path="*" element={
             <>
               <Navbar />
-              <Routes>
+              <Suspense fallback={<RouteFallback />}>
+        <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/login" element={<Login />} />
@@ -78,6 +88,7 @@ function App() {
             </>
           } />
         </Routes>
+        </Suspense>
       </Router>
     </AuthProvider>
   );

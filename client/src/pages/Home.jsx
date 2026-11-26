@@ -131,7 +131,7 @@ const faqs = [
   }
 ];
 
-const WHATSAPP_URL = 'https://wa.me/919829454487';
+const WHATSAPP_URL = 'https://wa.me/919820454498';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -207,9 +207,9 @@ const Home = () => {
                   <span>Book a service</span>
                   <FiArrowRight size={16} aria-hidden="true" />
                 </Link>
-                <a href="tel:+919829454487" className="btn btn-secondary btn-lg">
+                <a href="tel:+919820454498" className="btn btn-secondary btn-lg">
                   <FiPhoneCall size={16} aria-hidden="true" />
-                  <span className="tabular-nums">Call +91 9829454487</span>
+                  <span className="tabular-nums">Call +91 9820454498</span>
                 </a>
                 <a
                   href={WHATSAPP_URL}
@@ -433,9 +433,9 @@ const Home = () => {
                   <span>Book a service</span>
                   <FiArrowRight size={16} aria-hidden="true" />
                 </Link>
-                <a href="tel:+919829454487" className="btn cta-outline-btn btn-lg">
+                <a href="tel:+919820454498" className="btn cta-outline-btn btn-lg">
                   <FiPhoneCall size={16} aria-hidden="true" />
-                  <span className="tabular-nums">+91 9829454487</span>
+                  <span className="tabular-nums">+91 9820454498</span>
                 </a>
                 <a
                   href={WHATSAPP_URL}
@@ -469,7 +469,7 @@ const Home = () => {
         <Link to="/booking" className="btn btn-primary mobile-bar-btn">
           <span>Book</span>
         </Link>
-        <a href="tel:+919829454487" className="btn btn-secondary mobile-bar-btn">
+        <a href="tel:+919820454498" className="btn btn-secondary mobile-bar-btn">
           <FiPhoneCall size={15} aria-hidden="true" />
           <span>Call</span>
         </a>

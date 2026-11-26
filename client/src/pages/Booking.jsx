@@ -548,12 +548,12 @@ const Booking = () => {
                       <span>Track booking</span>
                     </Link>
                   )}
-                  <a href="tel:+919829454487" className="btn btn-secondary btn-lg">
+                  <a href="tel:+919820454498" className="btn btn-secondary btn-lg">
                     <FiPhoneCall size={16} aria-hidden="true" />
                     <span>Call</span>
                   </a>
                   <a
-                    href="https://wa.me/919829454487"
+                    href="https://wa.me/919820454498"
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-secondary btn-lg"

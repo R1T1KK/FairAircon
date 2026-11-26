@@ -51,9 +51,9 @@ const Footer = () => {
             <h3>Contact</h3>
             <ul className="footer-contact-list">
               <li>
-                <a href="tel:+919829454487" className="footer-contact-item">
+                <a href="tel:+919820454498" className="footer-contact-item">
                   <FiPhone size={15} aria-hidden="true" />
-                  <span className="tabular-nums">+91 9829454487</span>
+                  <span className="tabular-nums">+91 9820454498</span>
                 </a>
               </li>
               <li>

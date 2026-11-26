@@ -1,6 +1,6 @@
 .booking-page {
   min-height: 100vh;
-  background-color: var(--bg-body);
+  background-color: transparent;
   padding-bottom: var(--space-16);
 }
 
@@ -83,6 +83,13 @@
   padding: var(--space-8);
 }
 
+.booking-content.is-service-step {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
 .booking-step h2 {
   font-size: 1.375rem;
   font-weight: 600;
@@ -127,18 +134,19 @@
   text-align: left;
   padding: var(--space-5);
   cursor: pointer;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-hairline);
-  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out);
 }
 
 .service-select-card:hover {
-  border-color: var(--border-strong);
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-hover);
+  border-color: #ffffff;
 }
 
 .service-select-card.selected {
-  border-color: var(--cobalt);
-  background-color: var(--cobalt-tint);
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 4px var(--accent-ring);
 }
 
 .ssc-top {
@@ -152,16 +160,16 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: var(--bg-raised);
-  color: var(--navy);
+  background-color: var(--accent-soft);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .service-select-card.selected .ssc-icon {
-  background-color: var(--bg-card);
-  color: var(--cobalt);
+  background-color: var(--accent);
+  color: #ffffff;
 }
 
 .ssc-selected-pill {
@@ -170,20 +178,20 @@
   gap: 4px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--cobalt);
+  color: var(--accent);
 }
 
 .service-select-card h3 {
   font-size: 1.0625rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-strong);
   margin-bottom: var(--space-1);
 }
 
 .ssc-desc {
   font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--text-body);
   margin-bottom: var(--space-4);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -198,7 +206,7 @@
   gap: var(--space-3);
   margin-top: auto;
   padding-top: var(--space-3);
-  border-top: 1px solid var(--border-hairline);
+  border-top: 1px solid rgba(15, 41, 66, 0.1);
 }
 
 .ssc-price-group {
@@ -208,9 +216,9 @@
 }
 
 .ssc-price {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--navy);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
 .ssc-original {
@@ -221,7 +229,12 @@
 
 .ssc-duration {
   font-size: 0.8125rem;
-  color: var(--text-muted);
+  font-weight: 500;
+  color: var(--text-body);
+  background-color: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(15, 41, 66, 0.08);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
 }
 
 /* Step 2 & 3: Inputs */
@@ -414,9 +427,9 @@
 .summary-desktop-title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-strong);
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-hairline);
+  border-bottom: 1px solid rgba(15, 41, 66, 0.12);
   margin-bottom: var(--space-3);
 }
 
@@ -434,12 +447,12 @@
 }
 
 .summary-row span {
-  color: var(--text-muted);
+  color: var(--text-body);
 }
 
 .summary-row strong {
-  color: var(--text-primary);
-  font-weight: 500;
+  color: var(--text-strong);
+  font-weight: 600;
   text-align: right;
 }
 
@@ -449,19 +462,19 @@
   align-items: center;
   margin-top: var(--space-4);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-hairline);
+  border-top: 1px solid rgba(15, 41, 66, 0.12);
 }
 
 .summary-total span {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-strong);
 }
 
 .summary-total strong {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--navy);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
 /* Skeletons */

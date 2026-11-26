@@ -1,6 +1,6 @@
 .profile-page {
   min-height: 100vh;
-  background-color: var(--bg-body);
+  background-color: transparent;
   padding-bottom: var(--space-16);
 }
 

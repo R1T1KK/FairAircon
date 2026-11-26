@@ -1,6 +1,10 @@
 .tech-shell {
   min-height: 100vh;
-  background-color: var(--bg-body);
+  background:
+    radial-gradient(600px 400px at 10% 0%, rgba(56, 139, 253, 0.1), transparent 60%),
+    radial-gradient(500px 400px at 90% 20%, rgba(34, 211, 238, 0.08), transparent 60%),
+    radial-gradient(600px 500px at 50% 100%, rgba(99, 102, 241, 0.07), transparent 60%),
+    var(--bg-base);
   display: flex;
 }
 
@@ -546,3 +550,4 @@
     text-align: left;
   }
 }
+

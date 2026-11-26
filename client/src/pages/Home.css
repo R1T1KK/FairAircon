@@ -35,14 +35,18 @@
     transform: none;
     transition: none;
   }
+
+  .service-card:hover {
+    transform: none;
+  }
 }
 
-/* ======================= HERO (WHITE) ======================= */
+/* ======================= HERO (COOL-WATER CANVAS) ======================= */
 .hero {
   padding-top: 104px;
   padding-bottom: 64px;
-  background-color: var(--bg-card);
-  border-bottom: 1px solid var(--border-hairline);
+  background-color: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .hero-content {
@@ -95,15 +99,15 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  background-color: var(--bg-body);
-  border: 1px solid var(--border-hairline);
+  background-color: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-body);
 }
 
 .trust-chip svg {
-  color: var(--cobalt);
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -130,8 +134,6 @@
 
 .quick-book-card {
   padding: var(--space-4);
-  background-color: var(--bg-body);
-  box-shadow: var(--shadow-sm);
 }
 
 .quick-book-header {
@@ -174,9 +176,9 @@
   border-color: var(--cobalt);
 }
 
-/* ======================= SERVICES (LIGHT NEUTRAL) ======================= */
+/* ======================= SERVICES (GLASS ON COOL-WATER) ======================= */
 .services-section {
-  background-color: var(--bg-body);
+  background-color: transparent;
 }
 
 .services-grid {
@@ -189,12 +191,13 @@
   display: flex;
   flex-direction: column;
   padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
 }
 
 .service-card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-hover);
+  border-color: #ffffff;
 }
 
 .service-card-top {
@@ -208,8 +211,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background-color: var(--cobalt-tint);
-  color: var(--cobalt);
+  background-color: var(--accent-soft);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,20 +222,24 @@
 .service-duration {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-body);
+  background-color: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(15, 41, 66, 0.08);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
 }
 
 .service-card h3 {
   font-size: 1.0625rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-strong);
   margin-bottom: var(--space-2);
 }
 
 .service-desc {
   font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--text-body);
   margin-bottom: var(--space-5);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -246,7 +253,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-hairline);
+  border-top: 1px solid rgba(15, 41, 66, 0.1);
   margin-top: auto;
 }
 
@@ -257,20 +264,22 @@
 
 .service-price-label {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--text-body);
   line-height: 1.1;
 }
 
 .service-price {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--navy);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-strong);
   line-height: 1.2;
 }
 
-/* ======================= HOW IT WORKS (NAVY BAND) ======================= */
+/* ======================= HOW IT WORKS (NAVY GRADIENT + DARK GLASS) ======================= */
 .how-it-works {
-  background-color: var(--navy);
+  background:
+    radial-gradient(480px 360px at 90% 10%, rgba(34, 211, 238, 0.18), transparent 65%),
+    linear-gradient(135deg, #0b1e3a, #123a6b);
   color: #ffffff;
 }
 
@@ -279,13 +288,13 @@
 }
 
 .how-it-works .section-subtitle {
-  color: #cbd5e1;
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .steps-timeline {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-8);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
   position: relative;
 }
 
@@ -294,21 +303,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .step-marker {
   position: relative;
   display: flex;
   align-items: center;
-}
-
-/* Horizontal connecting line on desktop */
-.step-item:not(:last-child) .step-marker::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background-color: rgba(255, 255, 255, 0.24);
-  margin-left: var(--space-4);
 }
 
 .step-number {
@@ -329,12 +330,12 @@
 .step-body p {
   font-size: 0.9375rem;
   line-height: 1.6;
-  color: #e2e8f0;
+  color: rgba(255, 255, 255, 0.88);
 }
 
-/* ======================= SERVICE AREAS (LIGHT NEUTRAL) ======================= */
+/* ======================= SERVICE AREAS ======================= */
 .areas-section {
-  background-color: var(--bg-body);
+  background-color: transparent;
   padding: var(--space-12) 0;
 }
 
@@ -358,8 +359,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background-color: var(--cobalt-tint);
-  color: var(--cobalt);
+  background-color: var(--accent-soft);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -369,19 +370,19 @@
 .areas-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-strong);
   margin-bottom: var(--space-1);
 }
 
 .areas-desc {
   font-size: 0.9375rem;
   line-height: 1.55;
-  color: var(--text-secondary);
+  color: var(--text-body);
 }
 
-/* ======================= FAQ (LIGHT NEUTRAL) ======================= */
+/* ======================= FAQ ======================= */
 .faq-section {
-  background-color: var(--bg-body);
+  background-color: transparent;
 }
 
 .faq-list {
@@ -393,6 +394,11 @@
 
 .faq-item {
   overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.faq-item.is-open {
+  border-left: 3px solid var(--accent);
 }
 
 .faq-trigger {
@@ -406,54 +412,55 @@
   text-align: left;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
-  background-color: var(--bg-card);
+  color: var(--text-strong);
+  background-color: transparent;
   transition: background-color var(--transition-fast);
 }
 
 .faq-trigger:hover {
-  background-color: var(--bg-body);
+  background-color: rgba(255, 255, 255, 0.35);
 }
 
 .faq-chevron {
   flex-shrink: 0;
-  color: var(--text-secondary);
-  transition: transform var(--transition-fast);
+  color: var(--text-body);
+  transition: transform var(--transition-fast), color var(--transition-fast);
 }
 
 .faq-item.is-open .faq-chevron {
   transform: rotate(180deg);
-  color: var(--cobalt);
+  color: var(--accent);
 }
 
 .faq-panel {
   padding: 0 var(--space-5) var(--space-5);
-  border-top: 1px solid var(--border-hairline);
+  border-top: 1px solid rgba(15, 41, 66, 0.1);
 }
 
 .faq-panel p {
   padding-top: var(--space-3);
   font-size: 0.9375rem;
   line-height: 1.6;
-  color: var(--text-secondary);
+  color: var(--text-body);
 }
 
 /* ======================= FINAL CTA (NAVY BAND) ======================= */
 .cta-section {
-  background-color: var(--bg-card);
-  border-top: 1px solid var(--border-hairline);
+  background-color: transparent;
 }
 
 .cta-card {
-  background-color: var(--navy);
+  background:
+    radial-gradient(400px 300px at 90% 10%, rgba(34, 211, 238, 0.16), transparent 65%),
+    linear-gradient(135deg, #0b1e3a, #123a6b);
   color: #ffffff;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   padding: var(--space-10);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-8);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--glass-shadow);
 }
 
 .cta-copy {

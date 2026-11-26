@@ -22,16 +22,31 @@
   --primary-800: #0f2942;
   --primary-900: #0b192c;
 
+  /* Cool-water glassmorphism tokens (Phase 6.5) */
+  --bg-base: #eef3fb;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-blur: 16px;
+  --glass-shadow: 0 8px 32px rgba(15, 40, 80, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --glass-shadow-hover: 0 16px 40px rgba(15, 40, 80, 0.16), inset 0 1px 0 #ffffff;
+  --radius-card: 20px;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.1);
+  --accent-ring: rgba(37, 99, 235, 0.15);
+  --text-body: #334155;
+  --text-strong: #0f172a;
+
   /* Cool neutral ink ramp (light) */
-  --bg-body: #f5f7fa;
+  --bg-body: #eef3fb;
   --bg-card: #ffffff;
-  --bg-raised: #eceff4;
+  --bg-raised: #e6edf7;
   --border-hairline: rgba(15, 41, 66, 0.1);
   --border-strong: rgba(15, 41, 66, 0.18);
 
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-secondary: #334155;
+  --text-muted: #475569;
 
   /* Backward-compatible gray scale */
   --gray-50: #f5f7fa;
@@ -113,8 +128,13 @@ body {
   font-size: 15px;
   font-weight: 400;
   line-height: 1.55;
-  color: var(--text-primary);
-  background-color: var(--bg-body);
+  color: var(--text-strong);
+  background:
+    radial-gradient(600px 400px at 10% 0%, rgba(56, 139, 253, 0.25), transparent 60%),
+    radial-gradient(500px 400px at 90% 20%, rgba(34, 211, 238, 0.2), transparent 60%),
+    radial-gradient(600px 500px at 50% 100%, rgba(99, 102, 241, 0.18), transparent 60%),
+    var(--bg-base);
+  background-attachment: fixed;
   overflow-x: hidden;
   min-height: 100vh;
 }
@@ -287,6 +307,45 @@ select {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+/* Cool-water glassmorphism utilities */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-dark {
+  background: rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  padding: 24px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .glass-dark {
+    background: rgba(15, 40, 80, 0.9);
+  }
+}
+
 /* Status badges */
 .badge {
   display: inline-flex;
@@ -406,6 +465,10 @@ select {
 
 /* ======================== RESPONSIVE ======================== */
 @media (max-width: 768px) {
+  :root {
+    --glass-blur: 9px;
+  }
+
   .page-header-band {
     padding: 88px 0 var(--space-8);
   }

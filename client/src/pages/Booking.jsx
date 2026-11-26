@@ -204,7 +204,7 @@ const Booking = () => {
         )}
 
         <div className={`booking-layout ${step === 5 ? 'is-complete' : ''}`}>
-          <div className="card booking-content">
+          <div className={`booking-content ${step === 1 ? 'is-service-step' : 'card'}`}>
             {stepError && (
               <div className="booking-inline-alert" role="alert" aria-live="polite">
                 <FiAlertCircle size={18} aria-hidden="true" />
@@ -258,7 +258,7 @@ const Booking = () => {
                           type="button"
                           role="radio"
                           aria-checked={isSelected}
-                          className={`card service-select-card ${isSelected ? 'selected' : ''}`}
+                          className={`glass service-select-card ${isSelected ? 'selected' : ''}`}
                           onClick={() => handleServiceSelect(s)}
                         >
                           <div className="ssc-top">
@@ -607,7 +607,7 @@ const Booking = () => {
 
           {/* Sticky Summary Sidebar (Desktop) & Collapsible Summary (Mobile) */}
           {step < 5 && (
-            <aside className="card booking-summary-card" aria-label="Booking summary">
+            <aside className="glass-strong booking-summary-card" aria-label="Booking summary">
               <button
                 type="button"
                 className="summary-mobile-toggle"

@@ -1,8 +1,8 @@
 /* ======================= REVIEW SECTION ======================= */
 .review-section {
-  background-color: var(--bg-card);
-  border-top: 1px solid var(--border-hairline);
-  border-bottom: 1px solid var(--border-hairline);
+  background-color: transparent;
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .review-header {

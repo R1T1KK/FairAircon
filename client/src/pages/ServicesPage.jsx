@@ -154,7 +154,7 @@ const ServicesPage = () => {
                 const hasDiscount =
                   service.discountPrice > 0 && service.discountPrice < service.basePrice;
                 return (
-                  <article key={service._id} className="card sp-card">
+                  <article key={service._id} className="glass sp-card">
                     <div className="sp-card-top">
                       <div className="sp-card-icon">
                         {iconMap[service.category] || <FiTool size={20} aria-hidden="true" />}

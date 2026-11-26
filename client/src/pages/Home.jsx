@@ -249,7 +249,7 @@ const Home = () => {
                 />
               </div>
 
-              <form onSubmit={handleQuickBook} className="card quick-book-card">
+              <form onSubmit={handleQuickBook} className="glass-strong quick-book-card">
                 <div className="quick-book-header">
                   <label htmlFor="quick-book-select" className="quick-book-title">
                     Quick book a service
@@ -294,7 +294,7 @@ const Home = () => {
                 const price = service.discountPrice || service.basePrice;
                 const icon = iconByCategory[service.category] || <FiTool size={20} aria-hidden="true" />;
                 return (
-                  <article key={service._id} className="card service-card">
+                  <article key={service._id} className="glass service-card">
                     <div className="service-card-top">
                       <div className="service-icon-circle">{icon}</div>
                       <span className="service-duration tabular-nums">{service.duration} min</span>
@@ -329,7 +329,7 @@ const Home = () => {
 
             <div className="steps-timeline">
               {stepsList.map((step) => (
-                <div key={step.num} className="step-item">
+                <div key={step.num} className="glass-dark step-item">
                   <div className="step-marker">
                     <span className="step-number tabular-nums">{step.num}</span>
                   </div>
@@ -346,7 +346,7 @@ const Home = () => {
         {/* ======== SERVICE AREAS ======== */}
         <section className="section areas-section reveal-section" aria-labelledby="areas-heading">
           <div className="container">
-            <div className="card areas-card">
+            <div className="glass-strong areas-card">
               <div className="areas-info">
                 <div className="areas-icon">
                   <FiMapPin size={20} aria-hidden="true" />
@@ -388,7 +388,7 @@ const Home = () => {
                 const panelId = `faq-panel-${idx}`;
                 const btnId = `faq-btn-${idx}`;
                 return (
-                  <div key={idx} className={`card faq-item ${isOpen ? 'is-open' : ''}`}>
+                  <div key={idx} className={`${isOpen ? 'glass-strong is-open' : 'glass'} faq-item`}>
                     <h3>
                       <button
                         id={btnId}

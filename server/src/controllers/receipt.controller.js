@@ -26,15 +26,14 @@ exports.downloadReceipt = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Receipt only available for completed bookings' });
     }
 
-    // Create PDF
+    // Buffer PDF before sending headers so errors never cause ERR_HTTP_HEADERS_SENT
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=FairAircon-Receipt-${booking._id}.pdf`
-    );
-    doc.pipe(res);
+    const chunks = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    const pdfReady = new Promise((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
 
     // ─── HEADER ───────────────────────────────────────────────────────────────
     doc
@@ -71,7 +70,7 @@ exports.downloadReceipt = async (req, res, next) => {
       .fill('#166534')
       .font('Helvetica-Bold')
       .fontSize(11)
-      .text('✔ COMPLETED', 58, 122);
+      .text('COMPLETED', 58, 122);
 
     doc.moveDown(2);
 
@@ -106,19 +105,19 @@ exports.downloadReceipt = async (req, res, next) => {
     let y = 160;
     drawSection('Customer Information', y);
     y += 28;
-    drawRow('Name', booking.user.name, y); y += 20;
-    drawRow('Email', booking.user.email, y); y += 20;
-    drawRow('Phone', booking.user.phone || '—', y); y += 30;
+    drawRow('Name', booking.user?.name || 'Customer', y); y += 20;
+    drawRow('Email', booking.user?.email || '—', y); y += 20;
+    drawRow('Phone', booking.user?.phone || '—', y); y += 30;
 
     // ─── SERVICE DETAILS ──────────────────────────────────────────────────────
     drawSection('Service Details', y);
     y += 28;
-    drawRow('Service', booking.service.name, y); y += 20;
-    drawRow('Category', booking.service.category || '—', y); y += 20;
+    drawRow('Service', booking.service?.name || 'AC Service', y); y += 20;
+    drawRow('Category', booking.service?.category || '—', y); y += 20;
     drawRow('Scheduled Date', new Date(booking.scheduledDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), y); y += 20;
-    drawRow('Time Slot', booking.timeSlot, y); y += 20;
+    drawRow('Time Slot', booking.timeSlot || '—', y); y += 20;
 
-    if (booking.technician) {
+    if (booking.technician?.name) {
       drawRow('Technician', booking.technician.name, y); y += 20;
     }
     y += 10;
@@ -126,9 +125,9 @@ exports.downloadReceipt = async (req, res, next) => {
     // ─── ADDRESS ──────────────────────────────────────────────────────────────
     drawSection('Service Address', y);
     y += 28;
-    const addr = booking.address;
+    const addr = booking.address || {};
     doc.fill('#1e293b').font('Helvetica').fontSize(10)
-      .text(`${addr.street}, ${addr.city}, ${addr.state} — ${addr.pincode}`, 50, y, { width: 490 });
+      .text(`${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} — ${addr.pincode || ''}`, 50, y, { width: 490 });
     y += 30;
 
     if (booking.notes) {
@@ -166,9 +165,17 @@ exports.downloadReceipt = async (req, res, next) => {
     const footerY = doc.page.height - 50;
     doc.rect(0, footerY, doc.page.width, 50).fill('#1e86e9');
     doc.fill('white').font('Helvetica').fontSize(9)
-      .text(`© ${new Date().getFullYear()} Fair Aircon AC Services. All rights reserved.`, 50, footerY + 18, { align: 'center', width: doc.page.width - 100 });
+      .text(`© ${new Date().getFullYear()} Fair Aircon AC Services. All rights reserved.`, 50, footerY + 18, { align: 'center', width: doc.page.width - 100, lineBreak: false });
 
     doc.end();
+    const pdfBuffer = await pdfReady;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=FairAircon-Receipt-${booking._id}.pdf`
+    );
+    return res.send(pdfBuffer);
   } catch (error) {
     next(error);
   }
